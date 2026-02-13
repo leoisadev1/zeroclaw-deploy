@@ -93,6 +93,7 @@ pub fn run_wizard() -> Result<Config> {
         heartbeat: HeartbeatConfig::default(),
         channels_config,
         memory: MemoryConfig::default(), // SQLite + auto-save by default
+        tunnel: crate::config::TunnelConfig::default(),
     };
 
     println!(

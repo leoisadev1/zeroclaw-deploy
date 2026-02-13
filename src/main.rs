@@ -28,6 +28,7 @@ mod runtime;
 mod security;
 mod skills;
 mod tools;
+mod tunnel;
 
 use config::Config;
 

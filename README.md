@@ -15,7 +15,7 @@
 The fastest, smallest, fully autonomous AI assistant — deploy anywhere, swap anything.
 
 ```
-~3MB binary · <10ms startup · 629 tests · 22 providers · Pluggable everything
+~3MB binary · <10ms startup · 649 tests · 22 providers · Pluggable everything
 ```
 
 ## Quick Start
@@ -108,6 +108,7 @@ Every subsystem is a **trait** — swap implementations with a config change, ze
 | **Observability** | `Observer` | Noop, Log, Multi | Prometheus, OTel |
 | **Runtime** | `RuntimeAdapter` | Native (Mac/Linux/Pi) | Docker, WASM |
 | **Security** | `SecurityPolicy` | Sandbox + allowlists + rate limits | — |
+| **Tunnel** | `Tunnel` | None, Cloudflare, Tailscale, ngrok, Custom | Any tunnel binary |
 | **Heartbeat** | Engine | HEARTBEAT.md periodic tasks | — |
 
 ### Memory System
@@ -144,6 +145,49 @@ Every channel validates the sender **before** the message reaches the agent loop
 - **Sliding-window tracker** — counts actions within a 1-hour rolling window
 - **`max_actions_per_hour`** — hard cap on tool executions (default: 20)
 - **`max_cost_per_day_cents`** — daily cost ceiling (default: $5.00)
+
+#### Layer 2.5: Agnostic Tunnel
+
+Expose your gateway securely to the internet — **bring your own tunnel provider**. ZeroClaw doesn't lock you into Cloudflare or any single vendor.
+
+| Provider | Binary | Use Case |
+|----------|--------|----------|
+| **none** | — | Local-only (default) |
+| **cloudflare** | `cloudflared` | Cloudflare Zero Trust tunnel |
+| **tailscale** | `tailscale` | Tailnet-only (`serve`) or public (`funnel`) |
+| **ngrok** | `ngrok` | Quick public URLs, custom domains |
+| **custom** | Any | Bring your own: bore, frp, ssh, WireGuard, etc. |
+
+```toml
+[tunnel]
+provider = "tailscale"   # "none", "cloudflare", "tailscale", "ngrok", "custom"
+
+[tunnel.tailscale]
+funnel = true            # true = public internet, false = tailnet only
+
+# Or use Cloudflare:
+# [tunnel]
+# provider = "cloudflare"
+# [tunnel.cloudflare]
+# token = "your-tunnel-token"
+
+# Or ngrok:
+# [tunnel]
+# provider = "ngrok"
+# [tunnel.ngrok]
+# auth_token = "your-ngrok-token"
+# domain = "my-zeroclaw.ngrok.io"  # optional
+
+# Or bring your own:
+# [tunnel]
+# provider = "custom"
+# [tunnel.custom]
+# start_command = "bore local {port} --to bore.pub"
+# url_pattern = "https://"         # regex to extract URL from stdout
+# health_url = "http://localhost:4040/api/tunnels"  # optional
+```
+
+The tunnel starts automatically with `zeroclaw gateway` and prints the public URL.
 
 #### Layer 3: Tool Sandbox
 
@@ -298,7 +342,7 @@ interval_minutes = 30
 ```bash
 cargo build              # Dev build
 cargo build --release    # Release build (~3MB)
-cargo test               # 629 tests
+cargo test               # 649 tests
 cargo clippy             # Lint (0 warnings)
 
 # Run the SQLite vs Markdown benchmark
@@ -321,7 +365,8 @@ src/
 ├── providers/        # Provider trait + 22 providers
 ├── runtime/          # RuntimeAdapter trait + Native
 ├── security/         # Sandbox + allowlists + autonomy
-└── tools/            # Tool trait + shell/file/memory tools
+├── tools/            # Tool trait + shell/file/memory tools
+└── tunnel/           # Tunnel trait + Cloudflare/Tailscale/ngrok/Custom
 examples/
 ├── custom_provider.rs
 ├── custom_channel.rs

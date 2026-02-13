@@ -35,7 +35,28 @@ pub async fn run_gateway(host: &str, port: u16, config: Config) -> Result<()> {
         .and_then(|w| w.secret.as_deref())
         .map(Arc::from);
 
+    // ── Tunnel ────────────────────────────────────────────────
+    let tunnel = crate::tunnel::create_tunnel(&config.tunnel)?;
+    let mut tunnel_url: Option<String> = None;
+
+    if let Some(ref tun) = tunnel {
+        println!("🔗 Starting {} tunnel...", tun.name());
+        match tun.start(host, port).await {
+            Ok(url) => {
+                println!("🌐 Tunnel active: {url}");
+                tunnel_url = Some(url);
+            }
+            Err(e) => {
+                println!("⚠️  Tunnel failed to start: {e}");
+                println!("   Falling back to local-only mode.");
+            }
+        }
+    }
+
     println!("🦀 ZeroClaw Gateway listening on http://{addr}");
+    if let Some(ref url) = tunnel_url {
+        println!("  🌐 Public URL: {url}");
+    }
     println!("  POST /webhook  — {{\"message\": \"your prompt\"}}");
     println!("  GET  /health   — health check");
     if webhook_secret.is_some() {
