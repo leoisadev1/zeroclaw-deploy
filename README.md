@@ -55,7 +55,7 @@ cargo run --release -- tools test memory_recall '{"query": "Rust"}'
 Every subsystem is a **trait** — swap implementations with a config change, zero code changes.
 
 <p align="center">
-  <img src="docs/architecture.svg" alt="ZeroClaw Architecture" width="800" />
+  <img src="architecture.jpeg" alt="ZeroClaw Architecture" width="800" />
 </p>
 
 | Subsystem | Trait | Ships with | Extend |
