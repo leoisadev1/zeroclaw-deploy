@@ -88,8 +88,24 @@ pub fn create_provider(name: &str, api_key: Option<&str>) -> anyhow::Result<Box<
             "Cohere", "https://api.cohere.com/compatibility", api_key, AuthStyle::Bearer,
         ))),
 
+        // ── Bring Your Own Provider (custom URL) ───────────
+        // Format: "custom:https://your-api.com" or "custom:http://localhost:1234"
+        name if name.starts_with("custom:") => {
+            let base_url = name.strip_prefix("custom:").unwrap_or("");
+            if base_url.is_empty() {
+                anyhow::bail!("Custom provider requires a URL. Format: custom:https://your-api.com");
+            }
+            Ok(Box::new(OpenAiCompatibleProvider::new(
+                "Custom",
+                base_url,
+                api_key,
+                AuthStyle::Bearer,
+            )))
+        }
+
         _ => anyhow::bail!(
-            "Unknown provider: {name}. Run `zeroclaw integrations list -c ai` to see all available providers."
+            "Unknown provider: {name}. Run `zeroclaw integrations list -c ai` to see all available providers.\n\
+             Tip: Use \"custom:https://your-api.com\" for any OpenAI-compatible endpoint."
         ),
     }
 }
@@ -229,6 +245,37 @@ mod tests {
     #[test]
     fn factory_cohere() {
         assert!(create_provider("cohere", Some("key")).is_ok());
+    }
+
+    // ── Custom / BYOP provider ─────────────────────────────
+
+    #[test]
+    fn factory_custom_url() {
+        let p = create_provider("custom:https://my-llm.example.com", Some("key"));
+        assert!(p.is_ok());
+    }
+
+    #[test]
+    fn factory_custom_localhost() {
+        let p = create_provider("custom:http://localhost:1234", Some("key"));
+        assert!(p.is_ok());
+    }
+
+    #[test]
+    fn factory_custom_no_key() {
+        let p = create_provider("custom:https://my-llm.example.com", None);
+        assert!(p.is_ok());
+    }
+
+    #[test]
+    fn factory_custom_empty_url_errors() {
+        match create_provider("custom:", None) {
+            Err(e) => assert!(
+                e.to_string().contains("requires a URL"),
+                "Expected 'requires a URL', got: {e}"
+            ),
+            Ok(_) => panic!("Expected error for empty custom URL"),
+        }
     }
 
     // ── Error cases ──────────────────────────────────────────

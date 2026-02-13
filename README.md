@@ -15,7 +15,7 @@
 The fastest, smallest, fully autonomous AI assistant — deploy anywhere, swap anything.
 
 ```
-~3MB binary · <10ms startup · 649 tests · 22 providers · Pluggable everything
+~3MB binary · <10ms startup · 657 tests · 22+ providers · Pluggable everything
 ```
 
 ## Quick Start
@@ -54,54 +54,13 @@ cargo run --release -- tools test memory_recall '{"query": "Rust"}'
 
 Every subsystem is a **trait** — swap implementations with a config change, zero code changes.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        ZeroClaw Architecture                        │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌──────────────┐    ┌──────────────────────────────────────────┐   │
-│  │  Chat Apps    │    │            Security Layer                │   │
-│  │              │    │                                          │   │
-│  │  Telegram ───┤    │  ┌─────────────┐  ┌──────────────────┐  │   │
-│  │  Discord  ───┤    │  │ Auth Gate   │  │  Rate Limiter    │  │   │
-│  │  Slack    ───┼───►│  │             │  │                  │  │   │
-│  │  iMessage ───┤    │  │ • allowed_  │  │ • sliding window │  │   │
-│  │  Matrix   ───┤    │  │   users     │  │ • max actions/hr │  │   │
-│  │  CLI      ───┤    │  │ • webhook   │  │ • max cost/day   │  │   │
-│  │  Webhook  ───┤    │  │   secret    │  │                  │  │   │
-│  └──────────────┘    │  └──────┬──────┘  └────────┬─────────┘  │   │
-│                      │         │                  │            │   │
-│                      └─────────┼──────────────────┼────────────┘   │
-│                                ▼                  ▼                │
-│                      ┌──────────────────────────────────────┐      │
-│                      │           Agent Loop                 │      │
-│                      │                                      │      │
-│                      │  Message ──► LLM ──► Tools ──► Reply │      │
-│                      │     ▲                  │             │      │
-│                      │     │    ┌─────────────┘             │      │
-│                      │     │    ▼                           │      │
-│                      │  ┌──────────────┐  ┌─────────────┐  │      │
-│                      │  │   Context     │  │  Sandbox    │  │      │
-│                      │  │              │  │             │  │      │
-│                      │  │ • Memory     │  │ • allowlist │  │      │
-│                      │  │ • Skills     │  │ • path jail │  │      │
-│                      │  │ • Workspace  │  │ • forbidden │  │      │
-│                      │  │   MD files   │  │   paths     │  │      │
-│                      │  └──────────────┘  └─────────────┘  │      │
-│                      └──────────────────────────────────────┘      │
-│                                                                     │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │                     AI Providers (22)                         │   │
-│  │  OpenRouter · Anthropic · OpenAI · Mistral · Groq · Venice   │   │
-│  │  Ollama · xAI · DeepSeek · Cerebras · Fireworks · Together   │   │
-│  │  Cloudflare · Moonshot · GLM · MiniMax · Qianfan · + more    │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────┘
-```
+<p align="center">
+  <img src="docs/architecture.svg" alt="ZeroClaw Architecture" width="800" />
+</p>
 
 | Subsystem | Trait | Ships with | Extend |
 |-----------|-------|------------|--------|
-| **AI Models** | `Provider` | 22 providers (OpenRouter, Anthropic, OpenAI, Venice, Groq, Mistral, etc.) | Any OpenAI-compatible API |
+| **AI Models** | `Provider` | 22+ providers (OpenRouter, Anthropic, OpenAI, Venice, Groq, Mistral, etc.) | `custom:https://your-api.com` — any OpenAI-compatible API |
 | **Channels** | `Channel` | CLI, Telegram, Discord, Slack, iMessage, Matrix, Webhook | Any messaging API |
 | **Memory** | `Memory` | SQLite (default), Markdown | Any persistence |
 | **Tools** | `Tool` | shell, file_read, file_write, memory_store, memory_recall, memory_forget | Any capability |
@@ -342,7 +301,7 @@ interval_minutes = 30
 ```bash
 cargo build              # Dev build
 cargo build --release    # Release build (~3MB)
-cargo test               # 649 tests
+cargo test               # 657 tests
 cargo clippy             # Lint (0 warnings)
 
 # Run the SQLite vs Markdown benchmark

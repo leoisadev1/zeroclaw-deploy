@@ -55,19 +55,22 @@ pub fn run_wizard() -> Result<Config> {
     );
     println!();
 
-    print_step(1, 5, "Workspace Setup");
+    print_step(1, 6, "Workspace Setup");
     let (workspace_dir, config_path) = setup_workspace()?;
 
-    print_step(2, 5, "AI Provider & API Key");
+    print_step(2, 6, "AI Provider & API Key");
     let (provider, api_key, model) = setup_provider()?;
 
-    print_step(3, 5, "Channels (How You Talk to ZeroClaw)");
+    print_step(3, 6, "Channels (How You Talk to ZeroClaw)");
     let channels_config = setup_channels()?;
 
-    print_step(4, 5, "Project Context (Personalize Your Agent)");
+    print_step(4, 6, "Tunnel (Expose to Internet)");
+    let tunnel_config = setup_tunnel()?;
+
+    print_step(5, 6, "Project Context (Personalize Your Agent)");
     let project_ctx = setup_project_context()?;
 
-    print_step(5, 5, "Workspace Files");
+    print_step(6, 6, "Workspace Files");
     scaffold_workspace(&workspace_dir, &project_ctx)?;
 
     // ── Build config ──
@@ -93,7 +96,7 @@ pub fn run_wizard() -> Result<Config> {
         heartbeat: HeartbeatConfig::default(),
         channels_config,
         memory: MemoryConfig::default(), // SQLite + auto-save by default
-        tunnel: crate::config::TunnelConfig::default(),
+        tunnel: tunnel_config,
     };
 
     println!(
@@ -208,11 +211,12 @@ fn setup_workspace() -> Result<(PathBuf, PathBuf)> {
 fn setup_provider() -> Result<(String, String, String)> {
     // ── Tier selection ──
     let tiers = vec![
-        "Recommended (OpenRouter, Venice, Anthropic, OpenAI)",
-        "Fast inference (Groq, Fireworks, Together AI)",
-        "Gateway / proxy (Vercel AI, Cloudflare AI, Amazon Bedrock)",
-        "Specialized (Moonshot/Kimi, GLM/Zhipu, MiniMax, Qianfan, Z.AI, Synthetic, OpenCode Zen, Cohere)",
-        "Local / private (Ollama — no API key needed)",
+        "⭐ Recommended (OpenRouter, Venice, Anthropic, OpenAI)",
+        "⚡ Fast inference (Groq, Fireworks, Together AI)",
+        "🌐 Gateway / proxy (Vercel AI, Cloudflare AI, Amazon Bedrock)",
+        "🔬 Specialized (Moonshot/Kimi, GLM/Zhipu, MiniMax, Qianfan, Z.AI, Synthetic, OpenCode Zen, Cohere)",
+        "🏠 Local / private (Ollama — no API key needed)",
+        "🔧 Custom — bring your own OpenAI-compatible API",
     ];
 
     let tier_idx = Select::new()
@@ -255,8 +259,52 @@ fn setup_provider() -> Result<(String, String, String)> {
             ("opencode", "OpenCode Zen — code-focused AI"),
             ("cohere", "Cohere — Command R+ & embeddings"),
         ],
-        _ => vec![("ollama", "Ollama — local models (Llama, Mistral, Phi)")],
+        4 => vec![("ollama", "Ollama — local models (Llama, Mistral, Phi)")],
+        _ => vec![], // Custom — handled below
     };
+
+    // ── Custom / BYOP flow ──
+    if providers.is_empty() {
+        println!();
+        println!(
+            "  {} {}",
+            style("Custom Provider Setup").white().bold(),
+            style("— any OpenAI-compatible API").dim()
+        );
+        print_bullet("ZeroClaw works with ANY API that speaks the OpenAI chat completions format.");
+        print_bullet("Examples: LiteLLM, LocalAI, vLLM, text-generation-webui, LM Studio, etc.");
+        println!();
+
+        let base_url: String = Input::new()
+            .with_prompt("  API base URL (e.g. http://localhost:1234 or https://my-api.com)")
+            .interact_text()?;
+
+        let base_url = base_url.trim().trim_end_matches('/').to_string();
+        if base_url.is_empty() {
+            anyhow::bail!("Custom provider requires a base URL.");
+        }
+
+        let api_key: String = Input::new()
+            .with_prompt("  API key (or Enter to skip if not needed)")
+            .allow_empty(true)
+            .interact_text()?;
+
+        let model: String = Input::new()
+            .with_prompt("  Model name (e.g. llama3, gpt-4o, mistral)")
+            .default("default".into())
+            .interact_text()?;
+
+        let provider_name = format!("custom:{base_url}");
+
+        println!(
+            "  {} Provider: {} | Model: {}",
+            style("✓").green().bold(),
+            style(&provider_name).green(),
+            style(&model).green()
+        );
+
+        return Ok((provider_name, api_key, model));
+    }
 
     let provider_labels: Vec<&str> = providers.iter().map(|(_, label)| *label).collect();
 
@@ -1051,6 +1099,159 @@ fn setup_channels() -> Result<ChannelsConfig> {
         style("✓").green().bold(),
         style(active.join(", ")).green()
     );
+
+    Ok(config)
+}
+
+// ── Step 4: Tunnel ──────────────────────────────────────────────
+
+#[allow(clippy::too_many_lines)]
+fn setup_tunnel() -> Result<crate::config::TunnelConfig> {
+    use crate::config::schema::{
+        CloudflareTunnelConfig, CustomTunnelConfig, NgrokTunnelConfig, TailscaleTunnelConfig,
+        TunnelConfig,
+    };
+
+    print_bullet("A tunnel exposes your gateway to the internet securely.");
+    print_bullet("Skip this if you only use CLI or local channels.");
+    println!();
+
+    let options = vec![
+        "Skip — local only (default)",
+        "Cloudflare Tunnel — Zero Trust, free tier",
+        "Tailscale — private tailnet or public Funnel",
+        "ngrok — instant public URLs",
+        "Custom — bring your own (bore, frp, ssh, etc.)",
+    ];
+
+    let choice = Select::new()
+        .with_prompt("  Select tunnel provider")
+        .items(&options)
+        .default(0)
+        .interact()?;
+
+    let config = match choice {
+        1 => {
+            println!();
+            print_bullet("Get your tunnel token from the Cloudflare Zero Trust dashboard.");
+            let token: String = Input::new()
+                .with_prompt("  Cloudflare tunnel token")
+                .interact_text()?;
+            if token.trim().is_empty() {
+                println!("  {} Skipped", style("→").dim());
+                TunnelConfig::default()
+            } else {
+                println!(
+                    "  {} Tunnel: {}",
+                    style("✓").green().bold(),
+                    style("Cloudflare").green()
+                );
+                TunnelConfig {
+                    provider: "cloudflare".into(),
+                    cloudflare: Some(CloudflareTunnelConfig { token }),
+                    ..TunnelConfig::default()
+                }
+            }
+        }
+        2 => {
+            println!();
+            print_bullet("Tailscale must be installed and authenticated (tailscale up).");
+            let funnel = Confirm::new()
+                .with_prompt("  Use Funnel (public internet)? No = tailnet only")
+                .default(false)
+                .interact()?;
+            println!(
+                "  {} Tunnel: {} ({})",
+                style("✓").green().bold(),
+                style("Tailscale").green(),
+                if funnel {
+                    "Funnel — public"
+                } else {
+                    "Serve — tailnet only"
+                }
+            );
+            TunnelConfig {
+                provider: "tailscale".into(),
+                tailscale: Some(TailscaleTunnelConfig {
+                    funnel,
+                    hostname: None,
+                }),
+                ..TunnelConfig::default()
+            }
+        }
+        3 => {
+            println!();
+            print_bullet(
+                "Get your auth token at https://dashboard.ngrok.com/get-started/your-authtoken",
+            );
+            let auth_token: String = Input::new()
+                .with_prompt("  ngrok auth token")
+                .interact_text()?;
+            if auth_token.trim().is_empty() {
+                println!("  {} Skipped", style("→").dim());
+                TunnelConfig::default()
+            } else {
+                let domain: String = Input::new()
+                    .with_prompt("  Custom domain (optional, Enter to skip)")
+                    .allow_empty(true)
+                    .interact_text()?;
+                println!(
+                    "  {} Tunnel: {}",
+                    style("✓").green().bold(),
+                    style("ngrok").green()
+                );
+                TunnelConfig {
+                    provider: "ngrok".into(),
+                    ngrok: Some(NgrokTunnelConfig {
+                        auth_token,
+                        domain: if domain.is_empty() {
+                            None
+                        } else {
+                            Some(domain)
+                        },
+                    }),
+                    ..TunnelConfig::default()
+                }
+            }
+        }
+        4 => {
+            println!();
+            print_bullet("Enter the command to start your tunnel.");
+            print_bullet("Use {port} and {host} as placeholders.");
+            print_bullet("Example: bore local {port} --to bore.pub");
+            let cmd: String = Input::new()
+                .with_prompt("  Start command")
+                .interact_text()?;
+            if cmd.trim().is_empty() {
+                println!("  {} Skipped", style("→").dim());
+                TunnelConfig::default()
+            } else {
+                println!(
+                    "  {} Tunnel: {} ({})",
+                    style("✓").green().bold(),
+                    style("Custom").green(),
+                    style(&cmd).dim()
+                );
+                TunnelConfig {
+                    provider: "custom".into(),
+                    custom: Some(CustomTunnelConfig {
+                        start_command: cmd,
+                        health_url: None,
+                        url_pattern: None,
+                    }),
+                    ..TunnelConfig::default()
+                }
+            }
+        }
+        _ => {
+            println!(
+                "  {} Tunnel: {}",
+                style("✓").green().bold(),
+                style("none (local only)").dim()
+            );
+            TunnelConfig::default()
+        }
+    };
 
     Ok(config)
 }
