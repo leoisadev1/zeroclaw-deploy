@@ -250,11 +250,29 @@ mod tests {
     #[test]
     fn factory_all_providers_create_successfully() {
         let providers = [
-            "openrouter", "anthropic", "openai", "ollama",
-            "venice", "vercel", "cloudflare", "moonshot", "synthetic",
-            "opencode", "zai", "glm", "minimax", "bedrock", "qianfan",
-            "groq", "mistral", "xai", "deepseek", "together",
-            "fireworks", "perplexity", "cohere",
+            "openrouter",
+            "anthropic",
+            "openai",
+            "ollama",
+            "venice",
+            "vercel",
+            "cloudflare",
+            "moonshot",
+            "synthetic",
+            "opencode",
+            "zai",
+            "glm",
+            "minimax",
+            "bedrock",
+            "qianfan",
+            "groq",
+            "mistral",
+            "xai",
+            "deepseek",
+            "together",
+            "fireworks",
+            "perplexity",
+            "cohere",
         ];
         for name in providers {
             assert!(

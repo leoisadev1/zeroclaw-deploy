@@ -6,9 +6,7 @@ use std::time::Instant;
 use tempfile::TempDir;
 
 // We test both backends through the public memory module
-use zeroclaw::memory::{
-    markdown::MarkdownMemory, sqlite::SqliteMemory, Memory, MemoryCategory,
-};
+use zeroclaw::memory::{markdown::MarkdownMemory, sqlite::SqliteMemory, Memory, MemoryCategory};
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -80,16 +78,52 @@ async fn compare_recall_quality() {
 
     // Seed both with identical data
     let entries = vec![
-        ("lang_pref", "User prefers Rust over Python", MemoryCategory::Core),
-        ("editor", "Uses VS Code with rust-analyzer", MemoryCategory::Core),
+        (
+            "lang_pref",
+            "User prefers Rust over Python",
+            MemoryCategory::Core,
+        ),
+        (
+            "editor",
+            "Uses VS Code with rust-analyzer",
+            MemoryCategory::Core,
+        ),
         ("tz", "Timezone is EST, works 9-5", MemoryCategory::Core),
-        ("proj1", "Working on ZeroClaw AI assistant", MemoryCategory::Daily),
-        ("proj2", "Previous project was a web scraper in Python", MemoryCategory::Daily),
-        ("deploy", "Deploys to Hetzner VPS via Docker", MemoryCategory::Core),
-        ("model", "Prefers Claude Sonnet for coding tasks", MemoryCategory::Core),
-        ("style", "Likes concise responses, no fluff", MemoryCategory::Core),
-        ("rust_note", "Rust's ownership model prevents memory bugs", MemoryCategory::Daily),
-        ("perf", "Cares about binary size and startup time", MemoryCategory::Core),
+        (
+            "proj1",
+            "Working on ZeroClaw AI assistant",
+            MemoryCategory::Daily,
+        ),
+        (
+            "proj2",
+            "Previous project was a web scraper in Python",
+            MemoryCategory::Daily,
+        ),
+        (
+            "deploy",
+            "Deploys to Hetzner VPS via Docker",
+            MemoryCategory::Core,
+        ),
+        (
+            "model",
+            "Prefers Claude Sonnet for coding tasks",
+            MemoryCategory::Core,
+        ),
+        (
+            "style",
+            "Likes concise responses, no fluff",
+            MemoryCategory::Core,
+        ),
+        (
+            "rust_note",
+            "Rust's ownership model prevents memory bugs",
+            MemoryCategory::Daily,
+        ),
+        (
+            "perf",
+            "Cares about binary size and startup time",
+            MemoryCategory::Core,
+        ),
     ];
 
     for (key, content, cat) in &entries {
@@ -270,8 +304,10 @@ async fn compare_upsert() {
 
     println!("\n============================================================");
     println!("UPSERT (store same key twice):");
-    println!("  SQLite:   count={sq_count}, latest=\"{}\"",
-        sq_entry.as_ref().map_or("none", |e| &e.content));
+    println!(
+        "  SQLite:   count={sq_count}, latest=\"{}\"",
+        sq_entry.as_ref().map_or("none", |e| &e.content)
+    );
     println!("  Markdown: count={md_count} (append-only, both entries kept)");
     println!("    Can still find latest: {}", !md_results.is_empty());
 
@@ -311,7 +347,11 @@ async fn compare_forget() {
     );
     println!(
         "  Markdown: {} (append-only by design)",
-        if md_forgot { "✅ Deleted" } else { "⚠️  Cannot delete (audit trail)" },
+        if md_forgot {
+            "✅ Deleted"
+        } else {
+            "⚠️  Cannot delete (audit trail)"
+        },
     );
 
     // SQLite can delete
@@ -332,14 +372,28 @@ async fn compare_category_filter() {
     let md = markdown_backend(tmp_md.path());
 
     // Mix of categories
-    sq.store("a", "core fact 1", MemoryCategory::Core).await.unwrap();
-    sq.store("b", "core fact 2", MemoryCategory::Core).await.unwrap();
-    sq.store("c", "daily note", MemoryCategory::Daily).await.unwrap();
-    sq.store("d", "convo msg", MemoryCategory::Conversation).await.unwrap();
+    sq.store("a", "core fact 1", MemoryCategory::Core)
+        .await
+        .unwrap();
+    sq.store("b", "core fact 2", MemoryCategory::Core)
+        .await
+        .unwrap();
+    sq.store("c", "daily note", MemoryCategory::Daily)
+        .await
+        .unwrap();
+    sq.store("d", "convo msg", MemoryCategory::Conversation)
+        .await
+        .unwrap();
 
-    md.store("a", "core fact 1", MemoryCategory::Core).await.unwrap();
-    md.store("b", "core fact 2", MemoryCategory::Core).await.unwrap();
-    md.store("c", "daily note", MemoryCategory::Daily).await.unwrap();
+    md.store("a", "core fact 1", MemoryCategory::Core)
+        .await
+        .unwrap();
+    md.store("b", "core fact 2", MemoryCategory::Core)
+        .await
+        .unwrap();
+    md.store("c", "daily note", MemoryCategory::Daily)
+        .await
+        .unwrap();
 
     let sq_core = sq.list(Some(&MemoryCategory::Core)).await.unwrap();
     let sq_daily = sq.list(Some(&MemoryCategory::Daily)).await.unwrap();
@@ -352,10 +406,19 @@ async fn compare_category_filter() {
 
     println!("\n============================================================");
     println!("CATEGORY FILTERING:");
-    println!("  SQLite:   core={}, daily={}, conv={}, all={}",
-        sq_core.len(), sq_daily.len(), sq_conv.len(), sq_all.len());
-    println!("  Markdown: core={}, daily={}, all={}",
-        md_core.len(), md_daily.len(), md_all.len());
+    println!(
+        "  SQLite:   core={}, daily={}, conv={}, all={}",
+        sq_core.len(),
+        sq_daily.len(),
+        sq_conv.len(),
+        sq_all.len()
+    );
+    println!(
+        "  Markdown: core={}, daily={}, all={}",
+        md_core.len(),
+        md_daily.len(),
+        md_all.len()
+    );
 
     // SQLite: precise category filtering via SQL WHERE
     assert_eq!(sq_core.len(), 2);

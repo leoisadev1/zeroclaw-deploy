@@ -39,8 +39,7 @@ impl DiscordChannel {
     }
 }
 
-const BASE64_ALPHABET: &[u8] =
-    b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const BASE64_ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /// Minimal base64 decode (no extra dep) — only needs to decode the user ID portion
 #[allow(clippy::cast_possible_truncation)]
@@ -155,8 +154,7 @@ impl Channel for DiscordChannel {
         let (hb_tx, mut hb_rx) = tokio::sync::mpsc::channel::<()>(1);
         let hb_interval = heartbeat_interval;
         tokio::spawn(async move {
-            let mut interval =
-                tokio::time::interval(std::time::Duration::from_millis(hb_interval));
+            let mut interval = tokio::time::interval(std::time::Duration::from_millis(hb_interval));
             loop {
                 interval.tick().await;
                 if hb_tx.send(()).await.is_err() {

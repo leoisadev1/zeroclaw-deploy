@@ -64,7 +64,9 @@ impl Tool for MemoryRecallTool {
             Ok(entries) => {
                 let mut output = format!("Found {} memories:\n", entries.len());
                 for entry in &entries {
-                    let score = entry.score.map_or_else(String::new, |s| format!(" [{s:.0}%]"));
+                    let score = entry
+                        .score
+                        .map_or_else(String::new, |s| format!(" [{s:.0}%]"));
                     let _ = writeln!(
                         output,
                         "- [{}] {}: {}{score}",
@@ -102,10 +104,7 @@ mod tests {
     async fn recall_empty() {
         let (_tmp, mem) = seeded_mem();
         let tool = MemoryRecallTool::new(mem);
-        let result = tool
-            .execute(json!({"query": "anything"}))
-            .await
-            .unwrap();
+        let result = tool.execute(json!({"query": "anything"})).await.unwrap();
         assert!(result.success);
         assert!(result.output.contains("No memories found"));
     }
@@ -131,9 +130,13 @@ mod tests {
     async fn recall_respects_limit() {
         let (_tmp, mem) = seeded_mem();
         for i in 0..10 {
-            mem.store(&format!("k{i}"), &format!("Rust fact {i}"), MemoryCategory::Core)
-                .await
-                .unwrap();
+            mem.store(
+                &format!("k{i}"),
+                &format!("Rust fact {i}"),
+                MemoryCategory::Core,
+            )
+            .await
+            .unwrap();
         }
 
         let tool = MemoryRecallTool::new(mem);

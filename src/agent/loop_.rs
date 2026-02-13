@@ -46,8 +46,10 @@ pub async fn run(
     ));
 
     // ── Memory (the brain) ────────────────────────────────────────
-    let mem: Arc<dyn Memory> =
-        Arc::from(memory::create_memory(&config.memory, &config.workspace_dir)?);
+    let mem: Arc<dyn Memory> = Arc::from(memory::create_memory(
+        &config.memory,
+        &config.workspace_dir,
+    )?);
     tracing::info!(backend = mem.name(), "Memory initialized");
 
     // ── Tools (including memory tools) ────────────────────────────

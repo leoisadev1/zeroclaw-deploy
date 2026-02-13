@@ -222,7 +222,10 @@ fn setup_provider() -> Result<(String, String, String)> {
 
     let providers: Vec<(&str, &str)> = match tier_idx {
         0 => vec![
-            ("openrouter", "OpenRouter — 200+ models, 1 API key (recommended)"),
+            (
+                "openrouter",
+                "OpenRouter — 200+ models, 1 API key (recommended)",
+            ),
             ("venice", "Venice AI — privacy-first (Llama, Opus)"),
             ("anthropic", "Anthropic — Claude Sonnet & Opus (direct)"),
             ("openai", "OpenAI — GPT-4o, o1, GPT-5 (direct)"),
@@ -251,9 +254,7 @@ fn setup_provider() -> Result<(String, String, String)> {
             ("opencode", "OpenCode Zen — code-focused AI"),
             ("cohere", "Cohere — Command R+ & embeddings"),
         ],
-        _ => vec![
-            ("ollama", "Ollama — local models (Llama, Mistral, Phi)"),
-        ],
+        _ => vec![("ollama", "Ollama — local models (Llama, Mistral, Phi)")],
     };
 
     let provider_labels: Vec<&str> = providers.iter().map(|(_, label)| *label).collect();
@@ -321,18 +322,36 @@ fn setup_provider() -> Result<(String, String, String)> {
     // ── Model selection ──
     let models: Vec<(&str, &str)> = match provider_name {
         "openrouter" => vec![
-            ("anthropic/claude-sonnet-4-20250514", "Claude Sonnet 4 (balanced, recommended)"),
-            ("anthropic/claude-3.5-sonnet", "Claude 3.5 Sonnet (fast, affordable)"),
+            (
+                "anthropic/claude-sonnet-4-20250514",
+                "Claude Sonnet 4 (balanced, recommended)",
+            ),
+            (
+                "anthropic/claude-3.5-sonnet",
+                "Claude 3.5 Sonnet (fast, affordable)",
+            ),
             ("openai/gpt-4o", "GPT-4o (OpenAI flagship)"),
             ("openai/gpt-4o-mini", "GPT-4o Mini (fast, cheap)"),
-            ("google/gemini-2.0-flash-001", "Gemini 2.0 Flash (Google, fast)"),
-            ("meta-llama/llama-3.3-70b-instruct", "Llama 3.3 70B (open source)"),
+            (
+                "google/gemini-2.0-flash-001",
+                "Gemini 2.0 Flash (Google, fast)",
+            ),
+            (
+                "meta-llama/llama-3.3-70b-instruct",
+                "Llama 3.3 70B (open source)",
+            ),
             ("deepseek/deepseek-chat", "DeepSeek Chat (affordable)"),
         ],
         "anthropic" => vec![
-            ("claude-sonnet-4-20250514", "Claude Sonnet 4 (balanced, recommended)"),
+            (
+                "claude-sonnet-4-20250514",
+                "Claude Sonnet 4 (balanced, recommended)",
+            ),
             ("claude-3-5-sonnet-20241022", "Claude 3.5 Sonnet (fast)"),
-            ("claude-3-5-haiku-20241022", "Claude 3.5 Haiku (fastest, cheapest)"),
+            (
+                "claude-3-5-haiku-20241022",
+                "Claude 3.5 Haiku (fastest, cheapest)",
+            ),
         ],
         "openai" => vec![
             ("gpt-4o", "GPT-4o (flagship)"),
@@ -345,7 +364,10 @@ fn setup_provider() -> Result<(String, String, String)> {
             ("llama-3.1-405b", "Llama 3.1 405B (largest open source)"),
         ],
         "groq" => vec![
-            ("llama-3.3-70b-versatile", "Llama 3.3 70B (fast, recommended)"),
+            (
+                "llama-3.3-70b-versatile",
+                "Llama 3.3 70B (fast, recommended)",
+            ),
             ("llama-3.1-8b-instant", "Llama 3.1 8B (instant)"),
             ("mixtral-8x7b-32768", "Mixtral 8x7B (32K context)"),
         ],
@@ -367,12 +389,24 @@ fn setup_provider() -> Result<(String, String, String)> {
             ("sonar", "Sonar (search, fast)"),
         ],
         "fireworks" => vec![
-            ("accounts/fireworks/models/llama-v3p3-70b-instruct", "Llama 3.3 70B"),
-            ("accounts/fireworks/models/mixtral-8x22b-instruct", "Mixtral 8x22B"),
+            (
+                "accounts/fireworks/models/llama-v3p3-70b-instruct",
+                "Llama 3.3 70B",
+            ),
+            (
+                "accounts/fireworks/models/mixtral-8x22b-instruct",
+                "Mixtral 8x22B",
+            ),
         ],
         "together" => vec![
-            ("meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "Llama 3.1 70B Turbo"),
-            ("meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", "Llama 3.1 8B Turbo"),
+            (
+                "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+                "Llama 3.1 70B Turbo",
+            ),
+            (
+                "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+                "Llama 3.1 8B Turbo",
+            ),
             ("mistralai/Mixtral-8x22B-Instruct-v0.1", "Mixtral 8x22B"),
         ],
         "cohere" => vec![
@@ -397,9 +431,7 @@ fn setup_provider() -> Result<(String, String, String)> {
             ("codellama", "Code Llama"),
             ("phi3", "Phi-3 (small, fast)"),
         ],
-        _ => vec![
-            ("default", "Default model"),
-        ],
+        _ => vec![("default", "Default model")],
     };
 
     let model_labels: Vec<&str> = models.iter().map(|(_, label)| *label).collect();
@@ -518,7 +550,9 @@ fn setup_project_context() -> Result<ProjectContext> {
         0 => "Be direct and concise. Skip pleasantries. Get to the point.".to_string(),
         1 => "Be friendly and casual. Warm but efficient.".to_string(),
         2 => "Be technical and detailed. Thorough explanations, code-first.".to_string(),
-        _ => "Adapt to the situation. Be concise when needed, thorough when it matters.".to_string(),
+        _ => {
+            "Adapt to the situation. Be concise when needed, thorough when it matters.".to_string()
+        }
     };
 
     println!(
@@ -560,27 +594,51 @@ fn setup_channels() -> Result<ChannelsConfig> {
         let options = vec![
             format!(
                 "Telegram   {}",
-                if config.telegram.is_some() { "✅ connected" } else { "— connect your bot" }
+                if config.telegram.is_some() {
+                    "✅ connected"
+                } else {
+                    "— connect your bot"
+                }
             ),
             format!(
                 "Discord    {}",
-                if config.discord.is_some() { "✅ connected" } else { "— connect your bot" }
+                if config.discord.is_some() {
+                    "✅ connected"
+                } else {
+                    "— connect your bot"
+                }
             ),
             format!(
                 "Slack      {}",
-                if config.slack.is_some() { "✅ connected" } else { "— connect your bot" }
+                if config.slack.is_some() {
+                    "✅ connected"
+                } else {
+                    "— connect your bot"
+                }
             ),
             format!(
                 "iMessage   {}",
-                if config.imessage.is_some() { "✅ configured" } else { "— macOS only" }
+                if config.imessage.is_some() {
+                    "✅ configured"
+                } else {
+                    "— macOS only"
+                }
             ),
             format!(
                 "Matrix     {}",
-                if config.matrix.is_some() { "✅ connected" } else { "— self-hosted chat" }
+                if config.matrix.is_some() {
+                    "✅ connected"
+                } else {
+                    "— self-hosted chat"
+                }
             ),
             format!(
                 "Webhook    {}",
-                if config.webhook.is_some() { "✅ configured" } else { "— HTTP endpoint" }
+                if config.webhook.is_some() {
+                    "✅ configured"
+                } else {
+                    "— HTTP endpoint"
+                }
             ),
             "Done — finish setup".to_string(),
         ];
@@ -670,9 +728,7 @@ fn setup_channels() -> Result<ChannelsConfig> {
                 print_bullet("4. Invite bot to your server with messages permission");
                 println!();
 
-                let token: String = Input::new()
-                    .with_prompt("  Bot token")
-                    .interact_text()?;
+                let token: String = Input::new().with_prompt("  Bot token").interact_text()?;
 
                 if token.trim().is_empty() {
                     println!("  {} Skipped", style("→").dim());
@@ -750,7 +806,10 @@ fn setup_channels() -> Result<ChannelsConfig> {
                 {
                     Ok(resp) if resp.status().is_success() => {
                         let data: serde_json::Value = resp.json().unwrap_or_default();
-                        let ok = data.get("ok").and_then(serde_json::Value::as_bool).unwrap_or(false);
+                        let ok = data
+                            .get("ok")
+                            .and_then(serde_json::Value::as_bool)
+                            .unwrap_or(false);
                         let team = data
                             .get("team")
                             .and_then(serde_json::Value::as_str)
@@ -761,11 +820,11 @@ fn setup_channels() -> Result<ChannelsConfig> {
                                 style("✅").green().bold()
                             );
                         } else {
-                            let err = data.get("error").and_then(serde_json::Value::as_str).unwrap_or("unknown error");
-                            println!(
-                                "\r  {} Slack error: {err}",
-                                style("❌").red().bold()
-                            );
+                            let err = data
+                                .get("error")
+                                .and_then(serde_json::Value::as_str)
+                                .unwrap_or("unknown error");
+                            println!("\r  {} Slack error: {err}", style("❌").red().bold());
                             continue;
                         }
                     }
@@ -790,8 +849,16 @@ fn setup_channels() -> Result<ChannelsConfig> {
 
                 config.slack = Some(SlackConfig {
                     bot_token: token,
-                    app_token: if app_token.is_empty() { None } else { Some(app_token) },
-                    channel_id: if channel.is_empty() { None } else { Some(channel) },
+                    app_token: if app_token.is_empty() {
+                        None
+                    } else {
+                        Some(app_token)
+                    },
+                    channel_id: if channel.is_empty() {
+                        None
+                    } else {
+                        Some(channel)
+                    },
                     allowed_users: vec![],
                 });
             }
@@ -813,7 +880,9 @@ fn setup_channels() -> Result<ChannelsConfig> {
                 }
 
                 print_bullet("ZeroClaw reads your iMessage database and replies via AppleScript.");
-                print_bullet("You need to grant Full Disk Access to your terminal in System Settings.");
+                print_bullet(
+                    "You need to grant Full Disk Access to your terminal in System Settings.",
+                );
                 println!();
 
                 let contacts_str: String = Input::new()
@@ -824,7 +893,10 @@ fn setup_channels() -> Result<ChannelsConfig> {
                 let allowed_contacts = if contacts_str.trim() == "*" {
                     vec!["*".into()]
                 } else {
-                    contacts_str.split(',').map(|s| s.trim().to_string()).collect()
+                    contacts_str
+                        .split(',')
+                        .map(|s| s.trim().to_string())
+                        .collect()
                 };
 
                 config.imessage = Some(IMessageConfig { allowed_contacts });
@@ -855,9 +927,8 @@ fn setup_channels() -> Result<ChannelsConfig> {
                     continue;
                 }
 
-                let access_token: String = Input::new()
-                    .with_prompt("  Access token")
-                    .interact_text()?;
+                let access_token: String =
+                    Input::new().with_prompt("  Access token").interact_text()?;
 
                 if access_token.trim().is_empty() {
                     println!("  {} Skipped — token required", style("→").dim());
@@ -936,7 +1007,11 @@ fn setup_channels() -> Result<ChannelsConfig> {
 
                 config.webhook = Some(WebhookConfig {
                     port: port.parse().unwrap_or(8080),
-                    secret: if secret.is_empty() { None } else { Some(secret) },
+                    secret: if secret.is_empty() {
+                        None
+                    } else {
+                        Some(secret)
+                    },
                 });
                 println!(
                     "  {} Webhook on port {}",
@@ -1330,9 +1405,7 @@ fn print_summary(config: &Config) {
     let mut step = 1u8;
 
     if config.api_key.is_none() {
-        let env_var = provider_env_var(
-            config.default_provider.as_deref().unwrap_or("openrouter"),
-        );
+        let env_var = provider_env_var(config.default_provider.as_deref().unwrap_or("openrouter"));
         println!(
             "    {} Set your API key:",
             style(format!("{step}.")).cyan().bold()
@@ -1352,10 +1425,7 @@ fn print_summary(config: &Config) {
             style(format!("{step}.")).cyan().bold(),
             style("Launch your channels").white().bold()
         );
-        println!(
-            "       {}",
-            style("zeroclaw channel start").yellow()
-        );
+        println!("       {}", style("zeroclaw channel start").yellow());
         println!();
         step += 1;
     }
@@ -1440,10 +1510,7 @@ mod tests {
         scaffold_workspace(tmp.path(), &ctx).unwrap();
 
         for dir in &["sessions", "memory", "state", "cron", "skills"] {
-            assert!(
-                tmp.path().join(dir).is_dir(),
-                "missing subdirectory: {dir}"
-            );
+            assert!(tmp.path().join(dir).is_dir(), "missing subdirectory: {dir}");
         }
     }
 
@@ -1459,7 +1526,10 @@ mod tests {
         scaffold_workspace(tmp.path(), &ctx).unwrap();
 
         let user_md = fs::read_to_string(tmp.path().join("USER.md")).unwrap();
-        assert!(user_md.contains("**Name:** Alice"), "USER.md should contain user name");
+        assert!(
+            user_md.contains("**Name:** Alice"),
+            "USER.md should contain user name"
+        );
 
         let bootstrap = fs::read_to_string(tmp.path().join("BOOTSTRAP.md")).unwrap();
         assert!(

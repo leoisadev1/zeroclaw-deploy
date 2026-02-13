@@ -85,7 +85,9 @@ impl Provider for OllamaProvider {
 
         if !response.status().is_success() {
             let error = response.text().await?;
-            anyhow::bail!("Ollama error: {error}. Is Ollama running? (brew install ollama && ollama serve)");
+            anyhow::bail!(
+                "Ollama error: {error}. Is Ollama running? (brew install ollama && ollama serve)"
+            );
         }
 
         let chat_response: ChatResponse = response.json().await?;
@@ -126,8 +128,14 @@ mod tests {
         let req = ChatRequest {
             model: "llama3".to_string(),
             messages: vec![
-                Message { role: "system".to_string(), content: "You are ZeroClaw".to_string() },
-                Message { role: "user".to_string(), content: "hello".to_string() },
+                Message {
+                    role: "system".to_string(),
+                    content: "You are ZeroClaw".to_string(),
+                },
+                Message {
+                    role: "user".to_string(),
+                    content: "hello".to_string(),
+                },
             ],
             stream: false,
             options: Options { temperature: 0.7 },
@@ -143,9 +151,10 @@ mod tests {
     fn request_serializes_without_system() {
         let req = ChatRequest {
             model: "mistral".to_string(),
-            messages: vec![
-                Message { role: "user".to_string(), content: "test".to_string() },
-            ],
+            messages: vec![Message {
+                role: "user".to_string(),
+                content: "test".to_string(),
+            }],
             stream: false,
             options: Options { temperature: 0.0 },
         };

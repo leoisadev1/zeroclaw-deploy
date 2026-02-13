@@ -93,10 +93,7 @@ impl MatrixChannel {
     }
 
     async fn get_my_user_id(&self) -> anyhow::Result<String> {
-        let url = format!(
-            "{}/_matrix/client/v3/account/whoami",
-            self.homeserver
-        );
+        let url = format!("{}/_matrix/client/v3/account/whoami", self.homeserver);
         let resp = self
             .client
             .get(&url)
@@ -250,10 +247,7 @@ impl Channel for MatrixChannel {
     }
 
     async fn health_check(&self) -> bool {
-        let url = format!(
-            "{}/_matrix/client/v3/account/whoami",
-            self.homeserver
-        );
+        let url = format!("{}/_matrix/client/v3/account/whoami", self.homeserver);
         let Ok(resp) = self
             .client
             .get(&url)
@@ -413,8 +407,14 @@ mod tests {
         let room = resp.rooms.join.get("!room:matrix.org").unwrap();
         assert_eq!(room.timeline.events.len(), 1);
         assert_eq!(room.timeline.events[0].sender, "@user:matrix.org");
-        assert_eq!(room.timeline.events[0].content.body.as_deref(), Some("Hello!"));
-        assert_eq!(room.timeline.events[0].content.msgtype.as_deref(), Some("m.text"));
+        assert_eq!(
+            room.timeline.events[0].content.body.as_deref(),
+            Some("Hello!")
+        );
+        assert_eq!(
+            room.timeline.events[0].content.msgtype.as_deref(),
+            Some("m.text")
+        );
     }
 
     #[test]

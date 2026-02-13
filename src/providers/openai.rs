@@ -146,8 +146,14 @@ mod tests {
         let req = ChatRequest {
             model: "gpt-4o".to_string(),
             messages: vec![
-                Message { role: "system".to_string(), content: "You are ZeroClaw".to_string() },
-                Message { role: "user".to_string(), content: "hello".to_string() },
+                Message {
+                    role: "system".to_string(),
+                    content: "You are ZeroClaw".to_string(),
+                },
+                Message {
+                    role: "user".to_string(),
+                    content: "hello".to_string(),
+                },
             ],
             temperature: 0.7,
         };
@@ -161,9 +167,10 @@ mod tests {
     fn request_serializes_without_system() {
         let req = ChatRequest {
             model: "gpt-4o".to_string(),
-            messages: vec![
-                Message { role: "user".to_string(), content: "hello".to_string() },
-            ],
+            messages: vec![Message {
+                role: "user".to_string(),
+                content: "hello".to_string(),
+            }],
             temperature: 0.0,
         };
         let json = serde_json::to_string(&req).unwrap();

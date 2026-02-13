@@ -130,7 +130,9 @@ fn list_integrations(config: &Config, filter_category: Option<&str>) -> Result<(
 
     let total = available + active + coming;
     println!();
-    println!("  {total} integrations: {active} active, {available} available, {coming} coming soon");
+    println!(
+        "  {total} integrations: {active} active, {available} available, {coming} coming soon"
+    );
     println!();
     println!("  Configure: zeroclaw onboard");
     println!("  Details:   zeroclaw integrations info <name>");
@@ -144,9 +146,7 @@ fn show_integration_info(config: &Config, name: &str) -> Result<()> {
     let name_lower = name.to_lowercase();
 
     let Some(entry) = entries.iter().find(|e| e.name.to_lowercase() == name_lower) else {
-        anyhow::bail!(
-            "Unknown integration: {name}. Run `zeroclaw integrations list` to see all."
-        );
+        anyhow::bail!("Unknown integration: {name}. Run `zeroclaw integrations list` to see all.");
     };
 
     let status = (entry.status_fn)(config);
@@ -157,7 +157,12 @@ fn show_integration_info(config: &Config, name: &str) -> Result<()> {
     };
 
     println!();
-    println!("  {} {} — {}", icon, console::style(entry.name).white().bold(), entry.description);
+    println!(
+        "  {} {} — {}",
+        icon,
+        console::style(entry.name).white().bold(),
+        entry.description
+    );
     println!("  Category: {}", entry.category.label());
     println!("  Status:   {label}");
     println!();

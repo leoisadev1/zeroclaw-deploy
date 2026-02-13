@@ -170,9 +170,14 @@ mod tests {
     #[tokio::test]
     async fn chat_fails_without_key() {
         let p = make_provider("Venice", "https://api.venice.ai", None);
-        let result = p.chat_with_system(None, "hello", "llama-3.3-70b", 0.7).await;
+        let result = p
+            .chat_with_system(None, "hello", "llama-3.3-70b", 0.7)
+            .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Venice API key not set"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Venice API key not set"));
     }
 
     #[test]
@@ -180,8 +185,14 @@ mod tests {
         let req = ChatRequest {
             model: "llama-3.3-70b".to_string(),
             messages: vec![
-                Message { role: "system".to_string(), content: "You are ZeroClaw".to_string() },
-                Message { role: "user".to_string(), content: "hello".to_string() },
+                Message {
+                    role: "system".to_string(),
+                    content: "You are ZeroClaw".to_string(),
+                },
+                Message {
+                    role: "user".to_string(),
+                    content: "hello".to_string(),
+                },
             ],
             temperature: 0.7,
         };
@@ -208,7 +219,10 @@ mod tests {
     #[test]
     fn x_api_key_auth_style() {
         let p = OpenAiCompatibleProvider::new(
-            "moonshot", "https://api.moonshot.cn", Some("ms-key"), AuthStyle::XApiKey,
+            "moonshot",
+            "https://api.moonshot.cn",
+            Some("ms-key"),
+            AuthStyle::XApiKey,
         );
         assert!(matches!(p.auth_header, AuthStyle::XApiKey));
     }
@@ -216,7 +230,10 @@ mod tests {
     #[test]
     fn custom_auth_style() {
         let p = OpenAiCompatibleProvider::new(
-            "custom", "https://api.example.com", Some("key"), AuthStyle::Custom("X-Custom-Key".into()),
+            "custom",
+            "https://api.example.com",
+            Some("key"),
+            AuthStyle::Custom("X-Custom-Key".into()),
         );
         assert!(matches!(p.auth_header, AuthStyle::Custom(_)));
     }
@@ -238,7 +255,8 @@ mod tests {
             assert!(result.is_err(), "{} should fail without key", p.name);
             assert!(
                 result.unwrap_err().to_string().contains("API key not set"),
-                "{} error should mention key", p.name
+                "{} error should mention key",
+                p.name
             );
         }
     }

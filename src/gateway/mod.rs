@@ -22,8 +22,10 @@ pub async fn run_gateway(host: &str, port: u16, config: Config) -> Result<()> {
         .clone()
         .unwrap_or_else(|| "anthropic/claude-sonnet-4-20250514".into());
     let temperature = config.default_temperature;
-    let mem: Arc<dyn Memory> =
-        Arc::from(memory::create_memory(&config.memory, &config.workspace_dir)?);
+    let mem: Arc<dyn Memory> = Arc::from(memory::create_memory(
+        &config.memory,
+        &config.workspace_dir,
+    )?);
 
     // Extract webhook secret for authentication
     let webhook_secret: Option<Arc<str>> = config
@@ -39,7 +41,9 @@ pub async fn run_gateway(host: &str, port: u16, config: Config) -> Result<()> {
     if webhook_secret.is_some() {
         println!("  🔒 Webhook authentication: ENABLED (X-Webhook-Secret header required)");
     } else {
-        println!("  ⚠️  Webhook authentication: DISABLED (set [channels.webhook] secret to enable)");
+        println!(
+            "  ⚠️  Webhook authentication: DISABLED (set [channels.webhook] secret to enable)"
+        );
     }
     println!("  Press Ctrl+C to stop.\n");
 
@@ -64,7 +68,19 @@ pub async fn run_gateway(host: &str, port: u16, config: Config) -> Result<()> {
 
             if let [method, path, ..] = parts.as_slice() {
                 tracing::info!("{peer} → {method} {path}");
-                handle_request(&mut stream, method, path, &request, &provider, &model, temperature, &mem, auto_save, secret.as_ref()).await;
+                handle_request(
+                    &mut stream,
+                    method,
+                    path,
+                    &request,
+                    &provider,
+                    &model,
+                    temperature,
+                    &mem,
+                    auto_save,
+                    secret.as_ref(),
+                )
+                .await;
             } else {
                 let _ = send_response(&mut stream, 400, "Bad Request").await;
             }
@@ -116,14 +132,25 @@ async fn handle_request(
                 match header_val {
                     Some(val) if val == secret.as_ref() => {}
                     _ => {
-                        tracing::warn!("Webhook: rejected request — invalid or missing X-Webhook-Secret");
+                        tracing::warn!(
+                            "Webhook: rejected request — invalid or missing X-Webhook-Secret"
+                        );
                         let err = serde_json::json!({"error": "Unauthorized — invalid or missing X-Webhook-Secret header"});
                         let _ = send_json(stream, 401, &err).await;
                         return;
                     }
                 }
             }
-            handle_webhook(stream, request, provider, model, temperature, mem, auto_save).await;
+            handle_webhook(
+                stream,
+                request,
+                provider,
+                model,
+                temperature,
+                mem,
+                auto_save,
+            )
+            .await;
         }
 
         _ => {
@@ -206,7 +233,8 @@ mod tests {
 
     #[test]
     fn extract_header_finds_value() {
-        let req = "POST /webhook HTTP/1.1\r\nHost: localhost\r\nX-Webhook-Secret: my-secret\r\n\r\n{}";
+        let req =
+            "POST /webhook HTTP/1.1\r\nHost: localhost\r\nX-Webhook-Secret: my-secret\r\n\r\n{}";
         assert_eq!(extract_header(req, "X-Webhook-Secret"), Some("my-secret"));
     }
 
@@ -244,13 +272,19 @@ mod tests {
     fn extract_header_colon_in_value() {
         let req = "POST /webhook HTTP/1.1\r\nAuthorization: Bearer sk-abc:123\r\n\r\n{}";
         // split_once on ':' means only the first colon splits key/value
-        assert_eq!(extract_header(req, "Authorization"), Some("Bearer sk-abc:123"));
+        assert_eq!(
+            extract_header(req, "Authorization"),
+            Some("Bearer sk-abc:123")
+        );
     }
 
     #[test]
     fn extract_header_different_header() {
         let req = "POST /webhook HTTP/1.1\r\nContent-Type: application/json\r\nX-Webhook-Secret: mysecret\r\n\r\n{}";
-        assert_eq!(extract_header(req, "Content-Type"), Some("application/json"));
+        assert_eq!(
+            extract_header(req, "Content-Type"),
+            Some("application/json")
+        );
         assert_eq!(extract_header(req, "X-Webhook-Secret"), Some("mysecret"));
     }
 

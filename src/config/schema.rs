@@ -570,10 +570,7 @@ default_temperature = 0.7
         let parsed: ChannelsConfig = toml::from_str(&toml_str).unwrap();
         assert!(parsed.imessage.is_some());
         assert!(parsed.matrix.is_some());
-        assert_eq!(
-            parsed.imessage.unwrap().allowed_contacts,
-            vec!["+1"]
-        );
+        assert_eq!(parsed.imessage.unwrap().allowed_contacts, vec!["+1"]);
         assert_eq!(parsed.matrix.unwrap().homeserver, "https://m.org");
     }
 

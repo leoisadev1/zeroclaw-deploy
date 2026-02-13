@@ -53,9 +53,7 @@ impl Provider for AnthropicProvider {
         temperature: f64,
     ) -> anyhow::Result<String> {
         let api_key = self.api_key.as_ref().ok_or_else(|| {
-            anyhow::anyhow!(
-                "Anthropic API key not set. Set ANTHROPIC_API_KEY or edit config.toml."
-            )
+            anyhow::anyhow!("Anthropic API key not set. Set ANTHROPIC_API_KEY or edit config.toml.")
         })?;
 
         let request = ChatRequest {
@@ -122,10 +120,15 @@ mod tests {
     #[tokio::test]
     async fn chat_fails_without_key() {
         let p = AnthropicProvider::new(None);
-        let result = p.chat_with_system(None, "hello", "claude-3-opus", 0.7).await;
+        let result = p
+            .chat_with_system(None, "hello", "claude-3-opus", 0.7)
+            .await;
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
-        assert!(err.contains("API key not set"), "Expected key error, got: {err}");
+        assert!(
+            err.contains("API key not set"),
+            "Expected key error, got: {err}"
+        );
     }
 
     #[tokio::test]
@@ -150,7 +153,10 @@ mod tests {
             temperature: 0.7,
         };
         let json = serde_json::to_string(&req).unwrap();
-        assert!(!json.contains("system"), "system field should be skipped when None");
+        assert!(
+            !json.contains("system"),
+            "system field should be skipped when None"
+        );
         assert!(json.contains("claude-3-opus"));
         assert!(json.contains("hello"));
     }
@@ -188,7 +194,8 @@ mod tests {
 
     #[test]
     fn chat_response_multiple_blocks() {
-        let json = r#"{"content":[{"type":"text","text":"First"},{"type":"text","text":"Second"}]}"#;
+        let json =
+            r#"{"content":[{"type":"text","text":"First"},{"type":"text","text":"Second"}]}"#;
         let resp: ChatResponse = serde_json::from_str(json).unwrap();
         assert_eq!(resp.content.len(), 2);
         assert_eq!(resp.content[0].text, "First");

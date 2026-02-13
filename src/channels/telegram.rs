@@ -102,7 +102,9 @@ impl Channel for TelegramChannel {
                         .unwrap_or("unknown");
 
                     if !self.is_user_allowed(username) {
-                        tracing::warn!("Telegram: ignoring message from unauthorized user: {username}");
+                        tracing::warn!(
+                            "Telegram: ignoring message from unauthorized user: {username}"
+                        );
                         continue;
                     }
 

@@ -37,8 +37,13 @@ impl ActionTracker {
 
     /// Record an action and return the current count within the window.
     pub fn record(&self) -> usize {
-        let mut actions = self.actions.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        let cutoff = Instant::now().checked_sub(std::time::Duration::from_secs(3600)).unwrap_or_else(Instant::now);
+        let mut actions = self
+            .actions
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let cutoff = Instant::now()
+            .checked_sub(std::time::Duration::from_secs(3600))
+            .unwrap_or_else(Instant::now);
         actions.retain(|t| *t > cutoff);
         actions.push(Instant::now());
         actions.len()
@@ -46,8 +51,13 @@ impl ActionTracker {
 
     /// Count of actions in the current window without recording.
     pub fn count(&self) -> usize {
-        let mut actions = self.actions.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        let cutoff = Instant::now().checked_sub(std::time::Duration::from_secs(3600)).unwrap_or_else(Instant::now);
+        let mut actions = self
+            .actions
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let cutoff = Instant::now()
+            .checked_sub(std::time::Duration::from_secs(3600))
+            .unwrap_or_else(Instant::now);
         actions.retain(|t| *t > cutoff);
         actions.len()
     }
@@ -55,7 +65,10 @@ impl ActionTracker {
 
 impl Clone for ActionTracker {
     fn clone(&self) -> Self {
-        let actions = self.actions.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let actions = self
+            .actions
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         Self {
             actions: Mutex::new(actions.clone()),
         }
@@ -582,7 +595,7 @@ mod tests {
             max_actions_per_hour: 1,
             ..SecurityPolicy::default()
         };
-        assert!(p.record_action());  // 1 — exactly at limit
+        assert!(p.record_action()); // 1 — exactly at limit
         assert!(!p.record_action()); // 2 — over
         assert!(!p.record_action()); // 3 — still over
     }

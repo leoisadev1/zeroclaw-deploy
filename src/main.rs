@@ -19,13 +19,13 @@ mod config;
 mod cron;
 mod gateway;
 mod heartbeat;
+mod integrations;
 mod memory;
 mod observability;
 mod onboard;
 mod providers;
 mod runtime;
 mod security;
-mod integrations;
 mod skills;
 mod tools;
 
@@ -298,7 +298,11 @@ async fn main() -> Result<()> {
                 ] {
                     println!(
                         "  {name:9} {}",
-                        if configured { "✅ configured" } else { "❌ not configured" }
+                        if configured {
+                            "✅ configured"
+                        } else {
+                            "❌ not configured"
+                        }
                     );
                 }
             }

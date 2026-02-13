@@ -75,8 +75,15 @@ pub fn build_system_prompt(
         for skill in skills {
             let _ = writeln!(prompt, "  <skill>");
             let _ = writeln!(prompt, "    <name>{}</name>", skill.name);
-            let _ = writeln!(prompt, "    <description>{}</description>", skill.description);
-            let location = workspace_dir.join("skills").join(&skill.name).join("SKILL.md");
+            let _ = writeln!(
+                prompt,
+                "    <description>{}</description>",
+                skill.description
+            );
+            let location = workspace_dir
+                .join("skills")
+                .join(&skill.name)
+                .join("SKILL.md");
             let _ = writeln!(prompt, "    <location>{}</location>", location.display());
             let _ = writeln!(prompt, "  </skill>");
         }
@@ -84,11 +91,16 @@ pub fn build_system_prompt(
     }
 
     // ── 4. Workspace ────────────────────────────────────────────
-    let _ = writeln!(prompt, "## Workspace\n\nWorking directory: `{}`\n", workspace_dir.display());
+    let _ = writeln!(
+        prompt,
+        "## Workspace\n\nWorking directory: `{}`\n",
+        workspace_dir.display()
+    );
 
     // ── 5. Bootstrap files (injected into context) ──────────────
     prompt.push_str("## Project Context\n\n");
-    prompt.push_str("The following workspace files define your identity, behavior, and context.\n\n");
+    prompt
+        .push_str("The following workspace files define your identity, behavior, and context.\n\n");
 
     let bootstrap_files = [
         "AGENTS.md",
@@ -118,8 +130,8 @@ pub fn build_system_prompt(
     let _ = writeln!(prompt, "## Current Date & Time\n\nTimezone: {tz}\n");
 
     // ── 7. Runtime ──────────────────────────────────────────────
-    let host = hostname::get()
-        .map_or_else(|_| "unknown".into(), |h| h.to_string_lossy().to_string());
+    let host =
+        hostname::get().map_or_else(|_| "unknown".into(), |h| h.to_string_lossy().to_string());
     let _ = writeln!(
         prompt,
         "## Runtime\n\nHost: {host} | OS: {} | Model: {model_name}\n",
@@ -180,10 +192,7 @@ pub fn handle_command(command: super::ChannelCommands, config: &Config) -> Resul
                 ("iMessage", config.channels_config.imessage.is_some()),
                 ("Matrix", config.channels_config.matrix.is_some()),
             ] {
-                println!(
-                    "  {} {name}",
-                    if configured { "✅" } else { "❌" }
-                );
+                println!("  {} {name}", if configured { "✅" } else { "❌" });
             }
             println!("\nTo start channels: zeroclaw channel start");
             println!("To configure:      zeroclaw onboard");
@@ -193,7 +202,9 @@ pub fn handle_command(command: super::ChannelCommands, config: &Config) -> Resul
             channel_type,
             config: _,
         } => {
-            anyhow::bail!("Channel type '{channel_type}' — use `zeroclaw onboard` to configure channels");
+            anyhow::bail!(
+                "Channel type '{channel_type}' — use `zeroclaw onboard` to configure channels"
+            );
         }
         super::ChannelCommands::Remove { name } => {
             anyhow::bail!("Remove channel '{name}' — edit ~/.zeroclaw/config.toml directly");
@@ -213,8 +224,10 @@ pub async fn start_channels(config: Config) -> Result<()> {
         .clone()
         .unwrap_or_else(|| "anthropic/claude-sonnet-4-20250514".into());
     let temperature = config.default_temperature;
-    let mem: Arc<dyn Memory> =
-        Arc::from(memory::create_memory(&config.memory, &config.workspace_dir)?);
+    let mem: Arc<dyn Memory> = Arc::from(memory::create_memory(
+        &config.memory,
+        &config.workspace_dir,
+    )?);
 
     // Build system prompt from workspace identity files + skills
     let workspace = config.workspace_dir.clone();
@@ -233,7 +246,14 @@ pub async fn start_channels(config: Config) -> Result<()> {
     let system_prompt = build_system_prompt(&workspace, &model, &tool_descs, &skills);
 
     if !skills.is_empty() {
-        println!("  🧩 Skills:   {}", skills.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(", "));
+        println!(
+            "  🧩 Skills:   {}",
+            skills
+                .iter()
+                .map(|s| s.name.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
     }
 
     // Collect active channels
@@ -263,9 +283,7 @@ pub async fn start_channels(config: Config) -> Result<()> {
     }
 
     if let Some(ref im) = config.channels_config.imessage {
-        channels.push(Arc::new(IMessageChannel::new(
-            im.allowed_contacts.clone(),
-        )));
+        channels.push(Arc::new(IMessageChannel::new(im.allowed_contacts.clone())));
     }
 
     if let Some(ref mx) = config.channels_config.matrix {
@@ -284,8 +302,19 @@ pub async fn start_channels(config: Config) -> Result<()> {
 
     println!("🦀 ZeroClaw Channel Server");
     println!("  🤖 Model:    {model}");
-    println!("  🧠 Memory:   {} (auto-save: {})", config.memory.backend, if config.memory.auto_save { "on" } else { "off" });
-    println!("  📡 Channels: {}", channels.iter().map(|c| c.name()).collect::<Vec<_>>().join(", "));
+    println!(
+        "  🧠 Memory:   {} (auto-save: {})",
+        config.memory.backend,
+        if config.memory.auto_save { "on" } else { "off" }
+    );
+    println!(
+        "  📡 Channels: {}",
+        channels
+            .iter()
+            .map(|c| c.name())
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
     println!();
     println!("  Listening for messages... (Ctrl+C to stop)");
     println!();
@@ -331,7 +360,10 @@ pub async fn start_channels(config: Config) -> Result<()> {
         }
 
         // Call the LLM with system prompt (identity + soul + tools)
-        match provider.chat_with_system(Some(&system_prompt), &msg.content, &model, temperature).await {
+        match provider
+            .chat_with_system(Some(&system_prompt), &msg.content, &model, temperature)
+            .await
+        {
             Ok(response) => {
                 println!(
                     "  🤖 Reply: {}",
@@ -355,9 +387,7 @@ pub async fn start_channels(config: Config) -> Result<()> {
                 eprintln!("  ❌ LLM error: {e}");
                 for ch in &channels {
                     if ch.name() == msg.channel {
-                        let _ = ch
-                            .send(&format!("⚠️ Error: {e}"), &msg.sender)
-                            .await;
+                        let _ = ch.send(&format!("⚠️ Error: {e}"), &msg.sender).await;
                         break;
                     }
                 }
@@ -384,9 +414,17 @@ mod tests {
         std::fs::write(tmp.path().join("SOUL.md"), "# Soul\nBe helpful.").unwrap();
         std::fs::write(tmp.path().join("IDENTITY.md"), "# Identity\nName: ZeroClaw").unwrap();
         std::fs::write(tmp.path().join("USER.md"), "# User\nName: Test User").unwrap();
-        std::fs::write(tmp.path().join("AGENTS.md"), "# Agents\nFollow instructions.").unwrap();
+        std::fs::write(
+            tmp.path().join("AGENTS.md"),
+            "# Agents\nFollow instructions.",
+        )
+        .unwrap();
         std::fs::write(tmp.path().join("TOOLS.md"), "# Tools\nUse shell carefully.").unwrap();
-        std::fs::write(tmp.path().join("HEARTBEAT.md"), "# Heartbeat\nCheck status.").unwrap();
+        std::fs::write(
+            tmp.path().join("HEARTBEAT.md"),
+            "# Heartbeat\nCheck status.",
+        )
+        .unwrap();
         std::fs::write(tmp.path().join("MEMORY.md"), "# Memory\nUser likes Rust.").unwrap();
         tmp
     }
@@ -401,15 +439,24 @@ mod tests {
         assert!(prompt.contains("## Tools"), "missing Tools section");
         assert!(prompt.contains("## Safety"), "missing Safety section");
         assert!(prompt.contains("## Workspace"), "missing Workspace section");
-        assert!(prompt.contains("## Project Context"), "missing Project Context");
-        assert!(prompt.contains("## Current Date & Time"), "missing Date/Time");
+        assert!(
+            prompt.contains("## Project Context"),
+            "missing Project Context"
+        );
+        assert!(
+            prompt.contains("## Current Date & Time"),
+            "missing Date/Time"
+        );
         assert!(prompt.contains("## Runtime"), "missing Runtime section");
     }
 
     #[test]
     fn prompt_injects_tools() {
         let ws = make_workspace();
-        let tools = vec![("shell", "Run commands"), ("memory_recall", "Search memory")];
+        let tools = vec![
+            ("shell", "Run commands"),
+            ("memory_recall", "Search memory"),
+        ];
         let prompt = build_system_prompt(ws.path(), "gpt-4o", &tools, &[]);
 
         assert!(prompt.contains("**shell**"));
@@ -435,7 +482,10 @@ mod tests {
         assert!(prompt.contains("### SOUL.md"), "missing SOUL.md header");
         assert!(prompt.contains("Be helpful"), "missing SOUL content");
         assert!(prompt.contains("### IDENTITY.md"), "missing IDENTITY.md");
-        assert!(prompt.contains("Name: ZeroClaw"), "missing IDENTITY content");
+        assert!(
+            prompt.contains("Name: ZeroClaw"),
+            "missing IDENTITY content"
+        );
         assert!(prompt.contains("### USER.md"), "missing USER.md");
         assert!(prompt.contains("### AGENTS.md"), "missing AGENTS.md");
         assert!(prompt.contains("### TOOLS.md"), "missing TOOLS.md");
@@ -460,12 +510,18 @@ mod tests {
         let ws = make_workspace();
         // No BOOTSTRAP.md — should not appear
         let prompt = build_system_prompt(ws.path(), "model", &[], &[]);
-        assert!(!prompt.contains("### BOOTSTRAP.md"), "BOOTSTRAP.md should not appear when missing");
+        assert!(
+            !prompt.contains("### BOOTSTRAP.md"),
+            "BOOTSTRAP.md should not appear when missing"
+        );
 
         // Create BOOTSTRAP.md — should appear
         std::fs::write(ws.path().join("BOOTSTRAP.md"), "# Bootstrap\nFirst run.").unwrap();
         let prompt2 = build_system_prompt(ws.path(), "model", &[], &[]);
-        assert!(prompt2.contains("### BOOTSTRAP.md"), "BOOTSTRAP.md should appear when present");
+        assert!(
+            prompt2.contains("### BOOTSTRAP.md"),
+            "BOOTSTRAP.md should appear when present"
+        );
         assert!(prompt2.contains("First run"));
     }
 
@@ -475,13 +531,23 @@ mod tests {
         let memory_dir = ws.path().join("memory");
         std::fs::create_dir_all(&memory_dir).unwrap();
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-        std::fs::write(memory_dir.join(format!("{today}.md")), "# Daily\nSome note.").unwrap();
+        std::fs::write(
+            memory_dir.join(format!("{today}.md")),
+            "# Daily\nSome note.",
+        )
+        .unwrap();
 
         let prompt = build_system_prompt(ws.path(), "model", &[], &[]);
 
         // Daily notes should NOT be in the system prompt (on-demand via tools)
-        assert!(!prompt.contains("Daily Notes"), "daily notes should not be auto-injected");
-        assert!(!prompt.contains("Some note"), "daily content should not be in prompt");
+        assert!(
+            !prompt.contains("Daily Notes"),
+            "daily notes should not be auto-injected"
+        );
+        assert!(
+            !prompt.contains("Some note"),
+            "daily content should not be in prompt"
+        );
     }
 
     #[test]
@@ -513,7 +579,10 @@ mod tests {
         assert!(prompt.contains("<name>code-review</name>"));
         assert!(prompt.contains("<description>Review code for bugs</description>"));
         assert!(prompt.contains("SKILL.md</location>"));
-        assert!(prompt.contains("loaded on demand"), "should mention on-demand loading");
+        assert!(
+            prompt.contains("loaded on demand"),
+            "should mention on-demand loading"
+        );
         // Full prompt content should NOT be dumped
         assert!(!prompt.contains("Long prompt content that should NOT appear"));
     }
@@ -527,8 +596,14 @@ mod tests {
 
         let prompt = build_system_prompt(ws.path(), "model", &[], &[]);
 
-        assert!(prompt.contains("truncated at"), "large files should be truncated");
-        assert!(!prompt.contains(&big_content), "full content should not appear");
+        assert!(
+            prompt.contains("truncated at"),
+            "large files should be truncated"
+        );
+        assert!(
+            !prompt.contains(&big_content),
+            "full content should not appear"
+        );
     }
 
     #[test]
@@ -539,7 +614,10 @@ mod tests {
         let prompt = build_system_prompt(ws.path(), "model", &[], &[]);
 
         // Empty file should not produce a header
-        assert!(!prompt.contains("### TOOLS.md"), "empty files should be skipped");
+        assert!(
+            !prompt.contains("### TOOLS.md"),
+            "empty files should be skipped"
+        );
     }
 
     #[test]

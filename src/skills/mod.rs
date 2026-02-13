@@ -158,7 +158,11 @@ pub fn skills_to_prompt(skills: &[Skill]) -> String {
         if !skill.tools.is_empty() {
             prompt.push_str("Tools:\n");
             for tool in &skill.tools {
-                let _ = writeln!(prompt, "- **{}**: {} ({})", tool.name, tool.description, tool.kind);
+                let _ = writeln!(
+                    prompt,
+                    "- **{}**: {} ({})",
+                    tool.name, tool.description, tool.kind
+                );
             }
         }
 
@@ -242,14 +246,16 @@ pub fn handle_command(command: super::SkillCommands, workspace_dir: &Path) -> Re
                     if !skill.tools.is_empty() {
                         println!(
                             "    Tools: {}",
-                            skill.tools.iter().map(|t| t.name.as_str()).collect::<Vec<_>>().join(", ")
+                            skill
+                                .tools
+                                .iter()
+                                .map(|t| t.name.as_str())
+                                .collect::<Vec<_>>()
+                                .join(", ")
                         );
                     }
                     if !skill.tags.is_empty() {
-                        println!(
-                            "    Tags:  {}",
-                            skill.tags.join(", ")
-                        );
+                        println!("    Tags:  {}", skill.tags.join(", "));
                     }
                 }
             }
@@ -270,7 +276,10 @@ pub fn handle_command(command: super::SkillCommands, workspace_dir: &Path) -> Re
                     .output()?;
 
                 if output.status.success() {
-                    println!("  {} Skill installed successfully!", console::style("✓").green().bold());
+                    println!(
+                        "  {} Skill installed successfully!",
+                        console::style("✓").green().bold()
+                    );
                     println!("  Restart `zeroclaw channel start` to activate.");
                 } else {
                     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -293,7 +302,11 @@ pub fn handle_command(command: super::SkillCommands, workspace_dir: &Path) -> Re
                     anyhow::bail!("Symlink not supported on this platform. Copy the skill directory manually.");
                 }
 
-                println!("  {} Skill linked: {}", console::style("✓").green().bold(), dest.display());
+                println!(
+                    "  {} Skill linked: {}",
+                    console::style("✓").green().bold(),
+                    dest.display()
+                );
             }
 
             Ok(())
@@ -305,7 +318,11 @@ pub fn handle_command(command: super::SkillCommands, workspace_dir: &Path) -> Re
             }
 
             std::fs::remove_dir_all(&skill_path)?;
-            println!("  {} Skill '{}' removed.", console::style("✓").green().bold(), name);
+            println!(
+                "  {} Skill '{}' removed.",
+                console::style("✓").green().bold(),
+                name
+            );
             Ok(())
         }
     }

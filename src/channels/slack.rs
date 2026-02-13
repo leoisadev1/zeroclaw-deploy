@@ -84,10 +84,7 @@ impl Channel for SlackChannel {
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
-            let mut params = vec![
-                ("channel", channel_id.clone()),
-                ("limit", "10".to_string()),
-            ];
+            let mut params = vec![("channel", channel_id.clone()), ("limit", "10".to_string())];
             if !last_ts.is_empty() {
                 params.push(("oldest", last_ts.clone()));
             }

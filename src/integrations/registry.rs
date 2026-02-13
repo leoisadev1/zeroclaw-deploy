@@ -161,7 +161,10 @@ pub fn all_integrations() -> Vec<IntegrationEntry> {
             description: "Gemini 2.5 Pro/Flash",
             category: IntegrationCategory::AiModel,
             status_fn: |c| {
-                if c.default_model.as_deref().is_some_and(|m| m.starts_with("google/")) {
+                if c.default_model
+                    .as_deref()
+                    .is_some_and(|m| m.starts_with("google/"))
+                {
                     IntegrationStatus::Active
                 } else {
                     IntegrationStatus::Available
@@ -173,7 +176,10 @@ pub fn all_integrations() -> Vec<IntegrationEntry> {
             description: "DeepSeek V3 & R1",
             category: IntegrationCategory::AiModel,
             status_fn: |c| {
-                if c.default_model.as_deref().is_some_and(|m| m.starts_with("deepseek/")) {
+                if c.default_model
+                    .as_deref()
+                    .is_some_and(|m| m.starts_with("deepseek/"))
+                {
                     IntegrationStatus::Active
                 } else {
                     IntegrationStatus::Available
@@ -185,7 +191,10 @@ pub fn all_integrations() -> Vec<IntegrationEntry> {
             description: "Grok 3 & 4",
             category: IntegrationCategory::AiModel,
             status_fn: |c| {
-                if c.default_model.as_deref().is_some_and(|m| m.starts_with("x-ai/")) {
+                if c.default_model
+                    .as_deref()
+                    .is_some_and(|m| m.starts_with("x-ai/"))
+                {
                     IntegrationStatus::Active
                 } else {
                     IntegrationStatus::Available
@@ -197,7 +206,10 @@ pub fn all_integrations() -> Vec<IntegrationEntry> {
             description: "Mistral Large & Codestral",
             category: IntegrationCategory::AiModel,
             status_fn: |c| {
-                if c.default_model.as_deref().is_some_and(|m| m.starts_with("mistral")) {
+                if c.default_model
+                    .as_deref()
+                    .is_some_and(|m| m.starts_with("mistral"))
+                {
                     IntegrationStatus::Active
                 } else {
                     IntegrationStatus::Available
@@ -655,15 +667,17 @@ pub fn all_integrations() -> Vec<IntegrationEntry> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::schema::{ChannelsConfig, IMessageConfig, MatrixConfig, TelegramConfig};
     use crate::config::Config;
-    use crate::config::schema::{
-        ChannelsConfig, IMessageConfig, MatrixConfig, TelegramConfig,
-    };
 
     #[test]
     fn registry_has_entries() {
         let entries = all_integrations();
-        assert!(entries.len() >= 50, "Expected 50+ integrations, got {}", entries.len());
+        assert!(
+            entries.len() >= 50,
+            "Expected 50+ integrations, got {}",
+            entries.len()
+        );
     }
 
     #[test]
@@ -727,7 +741,10 @@ mod tests {
         let config = Config::default();
         let entries = all_integrations();
         let tg = entries.iter().find(|e| e.name == "Telegram").unwrap();
-        assert!(matches!((tg.status_fn)(&config), IntegrationStatus::Available));
+        assert!(matches!(
+            (tg.status_fn)(&config),
+            IntegrationStatus::Available
+        ));
     }
 
     #[test]
@@ -746,7 +763,10 @@ mod tests {
         let config = Config::default();
         let entries = all_integrations();
         let im = entries.iter().find(|e| e.name == "iMessage").unwrap();
-        assert!(matches!((im.status_fn)(&config), IntegrationStatus::Available));
+        assert!(matches!(
+            (im.status_fn)(&config),
+            IntegrationStatus::Available
+        ));
     }
 
     #[test]
@@ -768,7 +788,10 @@ mod tests {
         let config = Config::default();
         let entries = all_integrations();
         let mx = entries.iter().find(|e| e.name == "Matrix").unwrap();
-        assert!(matches!((mx.status_fn)(&config), IntegrationStatus::Available));
+        assert!(matches!(
+            (mx.status_fn)(&config),
+            IntegrationStatus::Available
+        ));
     }
 
     #[test]
@@ -813,9 +836,21 @@ mod tests {
     #[test]
     fn category_counts_reasonable() {
         let entries = all_integrations();
-        let chat_count = entries.iter().filter(|e| e.category == IntegrationCategory::Chat).count();
-        let ai_count = entries.iter().filter(|e| e.category == IntegrationCategory::AiModel).count();
-        assert!(chat_count >= 5, "Expected 5+ chat integrations, got {chat_count}");
-        assert!(ai_count >= 5, "Expected 5+ AI model integrations, got {ai_count}");
+        let chat_count = entries
+            .iter()
+            .filter(|e| e.category == IntegrationCategory::Chat)
+            .count();
+        let ai_count = entries
+            .iter()
+            .filter(|e| e.category == IntegrationCategory::AiModel)
+            .count();
+        assert!(
+            chat_count >= 5,
+            "Expected 5+ chat integrations, got {chat_count}"
+        );
+        assert!(
+            ai_count >= 5,
+            "Expected 5+ AI model integrations, got {ai_count}"
+        );
     }
 }

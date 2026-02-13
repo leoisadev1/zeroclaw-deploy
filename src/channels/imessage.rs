@@ -23,9 +23,9 @@ impl IMessageChannel {
         if self.allowed_contacts.iter().any(|u| u == "*") {
             return true;
         }
-        self.allowed_contacts.iter().any(|u| {
-            u.eq_ignore_ascii_case(sender)
-        })
+        self.allowed_contacts
+            .iter()
+            .any(|u| u.eq_ignore_ascii_case(sender))
     }
 }
 

@@ -32,10 +32,7 @@ pub fn default_tools(security: Arc<SecurityPolicy>) -> Vec<Box<dyn Tool>> {
 }
 
 /// Create full tool registry including memory tools
-pub fn all_tools(
-    security: Arc<SecurityPolicy>,
-    memory: Arc<dyn Memory>,
-) -> Vec<Box<dyn Tool>> {
+pub fn all_tools(security: Arc<SecurityPolicy>, memory: Arc<dyn Memory>) -> Vec<Box<dyn Tool>> {
     vec![
         Box::new(ShellTool::new(security.clone())),
         Box::new(FileReadTool::new(security.clone())),
@@ -51,8 +48,10 @@ pub async fn handle_command(command: super::ToolCommands, config: Config) -> Res
         workspace_dir: config.workspace_dir.clone(),
         ..SecurityPolicy::default()
     });
-    let mem: Arc<dyn Memory> =
-        Arc::from(crate::memory::create_memory(&config.memory, &config.workspace_dir)?);
+    let mem: Arc<dyn Memory> = Arc::from(crate::memory::create_memory(
+        &config.memory,
+        &config.workspace_dir,
+    )?);
     let tools_list = all_tools(security, mem);
 
     match command {
