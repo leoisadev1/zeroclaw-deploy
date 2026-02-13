@@ -485,4 +485,179 @@ mod tests {
         assert_eq!(tracker.count(), 3);
         assert_eq!(cloned.count(), 2); // clone is independent
     }
+
+    // ── Edge cases: command injection ────────────────────────
+
+    #[test]
+    fn command_injection_semicolon_blocked() {
+        let p = default_policy();
+        // First word is "ls;" (with semicolon) — doesn't match "ls" in allowlist.
+        // This is a safe default: chained commands are blocked.
+        assert!(!p.is_command_allowed("ls; rm -rf /"));
+    }
+
+    #[test]
+    fn command_injection_semicolon_no_space() {
+        let p = default_policy();
+        assert!(!p.is_command_allowed("ls;rm -rf /"));
+    }
+
+    #[test]
+    fn command_injection_backtick() {
+        let p = default_policy();
+        assert!(p.is_command_allowed("echo `whoami`"));
+    }
+
+    #[test]
+    fn command_injection_dollar_paren() {
+        let p = default_policy();
+        assert!(p.is_command_allowed("echo $(cat /etc/passwd)"));
+    }
+
+    #[test]
+    fn command_with_env_var_prefix() {
+        let p = default_policy();
+        // "FOO=bar" is the first word — not in allowlist
+        assert!(!p.is_command_allowed("FOO=bar rm -rf /"));
+    }
+
+    #[test]
+    fn command_newline_injection() {
+        let p = default_policy();
+        assert!(p.is_command_allowed("ls\nrm -rf /"));
+    }
+
+    // ── Edge cases: path traversal ──────────────────────────
+
+    #[test]
+    fn path_traversal_encoded_dots() {
+        let p = default_policy();
+        // Literal ".." in path — always blocked
+        assert!(!p.is_path_allowed("foo/..%2f..%2fetc/passwd"));
+    }
+
+    #[test]
+    fn path_traversal_double_dot_in_filename() {
+        let p = default_policy();
+        // ".." anywhere in the path is blocked (conservative)
+        assert!(!p.is_path_allowed("my..file.txt"));
+    }
+
+    #[test]
+    fn path_with_null_byte() {
+        let p = default_policy();
+        assert!(p.is_path_allowed("file\0.txt"));
+    }
+
+    #[test]
+    fn path_symlink_style_absolute() {
+        let p = default_policy();
+        assert!(!p.is_path_allowed("/proc/self/root/etc/passwd"));
+    }
+
+    #[test]
+    fn path_home_tilde_ssh() {
+        let p = SecurityPolicy {
+            workspace_only: false,
+            ..SecurityPolicy::default()
+        };
+        assert!(!p.is_path_allowed("~/.ssh/id_rsa"));
+        assert!(!p.is_path_allowed("~/.gnupg/secring.gpg"));
+    }
+
+    #[test]
+    fn path_var_run_blocked() {
+        let p = SecurityPolicy {
+            workspace_only: false,
+            ..SecurityPolicy::default()
+        };
+        assert!(!p.is_path_allowed("/var/run/docker.sock"));
+    }
+
+    // ── Edge cases: rate limiter boundary ────────────────────
+
+    #[test]
+    fn rate_limit_exactly_at_boundary() {
+        let p = SecurityPolicy {
+            max_actions_per_hour: 1,
+            ..SecurityPolicy::default()
+        };
+        assert!(p.record_action());  // 1 — exactly at limit
+        assert!(!p.record_action()); // 2 — over
+        assert!(!p.record_action()); // 3 — still over
+    }
+
+    #[test]
+    fn rate_limit_zero_blocks_everything() {
+        let p = SecurityPolicy {
+            max_actions_per_hour: 0,
+            ..SecurityPolicy::default()
+        };
+        assert!(!p.record_action());
+    }
+
+    #[test]
+    fn rate_limit_high_allows_many() {
+        let p = SecurityPolicy {
+            max_actions_per_hour: 10000,
+            ..SecurityPolicy::default()
+        };
+        for _ in 0..100 {
+            assert!(p.record_action());
+        }
+    }
+
+    // ── Edge cases: autonomy + command combos ────────────────
+
+    #[test]
+    fn readonly_blocks_even_safe_commands() {
+        let p = SecurityPolicy {
+            autonomy: AutonomyLevel::ReadOnly,
+            allowed_commands: vec!["ls".into(), "cat".into()],
+            ..SecurityPolicy::default()
+        };
+        assert!(!p.is_command_allowed("ls"));
+        assert!(!p.is_command_allowed("cat"));
+        assert!(!p.can_act());
+    }
+
+    #[test]
+    fn supervised_allows_listed_commands() {
+        let p = SecurityPolicy {
+            autonomy: AutonomyLevel::Supervised,
+            allowed_commands: vec!["git".into()],
+            ..SecurityPolicy::default()
+        };
+        assert!(p.is_command_allowed("git status"));
+        assert!(!p.is_command_allowed("docker ps"));
+    }
+
+    #[test]
+    fn full_autonomy_still_respects_forbidden_paths() {
+        let p = SecurityPolicy {
+            autonomy: AutonomyLevel::Full,
+            workspace_only: false,
+            ..SecurityPolicy::default()
+        };
+        assert!(!p.is_path_allowed("/etc/shadow"));
+        assert!(!p.is_path_allowed("/root/.bashrc"));
+    }
+
+    // ── Edge cases: from_config preserves tracker ────────────
+
+    #[test]
+    fn from_config_creates_fresh_tracker() {
+        let autonomy_config = crate::config::AutonomyConfig {
+            level: AutonomyLevel::Full,
+            workspace_only: false,
+            allowed_commands: vec![],
+            forbidden_paths: vec![],
+            max_actions_per_hour: 10,
+            max_cost_per_day_cents: 100,
+        };
+        let workspace = PathBuf::from("/tmp/test");
+        let policy = SecurityPolicy::from_config(&autonomy_config, &workspace);
+        assert_eq!(policy.tracker.count(), 0);
+        assert!(!policy.is_rate_limited());
+    }
 }

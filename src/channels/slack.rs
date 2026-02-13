@@ -209,4 +209,31 @@ mod tests {
         assert!(ch.is_user_allowed("U222"));
         assert!(!ch.is_user_allowed("U333"));
     }
+
+    #[test]
+    fn allowlist_exact_match_not_substring() {
+        let ch = SlackChannel::new("xoxb-fake".into(), None, vec!["U111".into()]);
+        assert!(!ch.is_user_allowed("U1111"));
+        assert!(!ch.is_user_allowed("U11"));
+    }
+
+    #[test]
+    fn allowlist_empty_user_id() {
+        let ch = SlackChannel::new("xoxb-fake".into(), None, vec!["U111".into()]);
+        assert!(!ch.is_user_allowed(""));
+    }
+
+    #[test]
+    fn allowlist_case_sensitive() {
+        let ch = SlackChannel::new("xoxb-fake".into(), None, vec!["U111".into()]);
+        assert!(ch.is_user_allowed("U111"));
+        assert!(!ch.is_user_allowed("u111"));
+    }
+
+    #[test]
+    fn allowlist_wildcard_and_specific() {
+        let ch = SlackChannel::new("xoxb-fake".into(), None, vec!["U111".into(), "*".into()]);
+        assert!(ch.is_user_allowed("U111"));
+        assert!(ch.is_user_allowed("anyone"));
+    }
 }

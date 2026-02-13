@@ -179,4 +179,34 @@ mod tests {
         let ch = TelegramChannel::new("t".into(), vec![]);
         assert!(!ch.is_user_allowed("anyone"));
     }
+
+    #[test]
+    fn telegram_user_exact_match_not_substring() {
+        let ch = TelegramChannel::new("t".into(), vec!["alice".into()]);
+        assert!(!ch.is_user_allowed("alice_bot"));
+        assert!(!ch.is_user_allowed("alic"));
+        assert!(!ch.is_user_allowed("malice"));
+    }
+
+    #[test]
+    fn telegram_user_empty_string_denied() {
+        let ch = TelegramChannel::new("t".into(), vec!["alice".into()]);
+        assert!(!ch.is_user_allowed(""));
+    }
+
+    #[test]
+    fn telegram_user_case_sensitive() {
+        let ch = TelegramChannel::new("t".into(), vec!["Alice".into()]);
+        assert!(ch.is_user_allowed("Alice"));
+        assert!(!ch.is_user_allowed("alice"));
+        assert!(!ch.is_user_allowed("ALICE"));
+    }
+
+    #[test]
+    fn telegram_wildcard_with_specific_users() {
+        let ch = TelegramChannel::new("t".into(), vec!["alice".into(), "*".into()]);
+        assert!(ch.is_user_allowed("alice"));
+        assert!(ch.is_user_allowed("bob"));
+        assert!(ch.is_user_allowed("anyone"));
+    }
 }

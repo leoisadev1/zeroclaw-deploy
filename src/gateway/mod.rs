@@ -227,6 +227,42 @@ mod tests {
         let req = "POST /webhook HTTP/1.1\r\nX-Webhook-Secret:   spaced   \r\n\r\n{}";
         assert_eq!(extract_header(req, "X-Webhook-Secret"), Some("spaced"));
     }
+
+    #[test]
+    fn extract_header_first_match_wins() {
+        let req = "POST /webhook HTTP/1.1\r\nX-Webhook-Secret: first\r\nX-Webhook-Secret: second\r\n\r\n{}";
+        assert_eq!(extract_header(req, "X-Webhook-Secret"), Some("first"));
+    }
+
+    #[test]
+    fn extract_header_empty_value() {
+        let req = "POST /webhook HTTP/1.1\r\nX-Webhook-Secret:\r\n\r\n{}";
+        assert_eq!(extract_header(req, "X-Webhook-Secret"), Some(""));
+    }
+
+    #[test]
+    fn extract_header_colon_in_value() {
+        let req = "POST /webhook HTTP/1.1\r\nAuthorization: Bearer sk-abc:123\r\n\r\n{}";
+        // split_once on ':' means only the first colon splits key/value
+        assert_eq!(extract_header(req, "Authorization"), Some("Bearer sk-abc:123"));
+    }
+
+    #[test]
+    fn extract_header_different_header() {
+        let req = "POST /webhook HTTP/1.1\r\nContent-Type: application/json\r\nX-Webhook-Secret: mysecret\r\n\r\n{}";
+        assert_eq!(extract_header(req, "Content-Type"), Some("application/json"));
+        assert_eq!(extract_header(req, "X-Webhook-Secret"), Some("mysecret"));
+    }
+
+    #[test]
+    fn extract_header_from_empty_request() {
+        assert_eq!(extract_header("", "X-Webhook-Secret"), None);
+    }
+
+    #[test]
+    fn extract_header_newline_only_request() {
+        assert_eq!(extract_header("\r\n\r\n", "X-Webhook-Secret"), None);
+    }
 }
 
 async fn send_json(

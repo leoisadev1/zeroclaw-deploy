@@ -583,4 +583,72 @@ default_temperature = 0.7
         assert!(c.imessage.is_none());
         assert!(c.matrix.is_none());
     }
+
+    // ── Edge cases: serde(default) for allowed_users ─────────
+
+    #[test]
+    fn discord_config_deserializes_without_allowed_users() {
+        // Old configs won't have allowed_users — serde(default) should fill vec![]
+        let json = r#"{"bot_token":"tok","guild_id":"123"}"#;
+        let parsed: DiscordConfig = serde_json::from_str(json).unwrap();
+        assert!(parsed.allowed_users.is_empty());
+    }
+
+    #[test]
+    fn discord_config_deserializes_with_allowed_users() {
+        let json = r#"{"bot_token":"tok","guild_id":"123","allowed_users":["111","222"]}"#;
+        let parsed: DiscordConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(parsed.allowed_users, vec!["111", "222"]);
+    }
+
+    #[test]
+    fn slack_config_deserializes_without_allowed_users() {
+        let json = r#"{"bot_token":"xoxb-tok"}"#;
+        let parsed: SlackConfig = serde_json::from_str(json).unwrap();
+        assert!(parsed.allowed_users.is_empty());
+    }
+
+    #[test]
+    fn slack_config_deserializes_with_allowed_users() {
+        let json = r#"{"bot_token":"xoxb-tok","allowed_users":["U111"]}"#;
+        let parsed: SlackConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(parsed.allowed_users, vec!["U111"]);
+    }
+
+    #[test]
+    fn discord_config_toml_backward_compat() {
+        let toml_str = r#"
+bot_token = "tok"
+guild_id = "123"
+"#;
+        let parsed: DiscordConfig = toml::from_str(toml_str).unwrap();
+        assert!(parsed.allowed_users.is_empty());
+        assert_eq!(parsed.bot_token, "tok");
+    }
+
+    #[test]
+    fn slack_config_toml_backward_compat() {
+        let toml_str = r#"
+bot_token = "xoxb-tok"
+channel_id = "C123"
+"#;
+        let parsed: SlackConfig = toml::from_str(toml_str).unwrap();
+        assert!(parsed.allowed_users.is_empty());
+        assert_eq!(parsed.channel_id.as_deref(), Some("C123"));
+    }
+
+    #[test]
+    fn webhook_config_with_secret() {
+        let json = r#"{"port":8080,"secret":"my-secret-key"}"#;
+        let parsed: WebhookConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(parsed.secret.as_deref(), Some("my-secret-key"));
+    }
+
+    #[test]
+    fn webhook_config_without_secret() {
+        let json = r#"{"port":8080}"#;
+        let parsed: WebhookConfig = serde_json::from_str(json).unwrap();
+        assert!(parsed.secret.is_none());
+        assert_eq!(parsed.port, 8080);
+    }
 }

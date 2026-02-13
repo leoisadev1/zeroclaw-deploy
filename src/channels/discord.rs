@@ -308,4 +308,51 @@ mod tests {
         assert!(!ch.is_user_allowed("333"));
         assert!(!ch.is_user_allowed("unknown"));
     }
+
+    #[test]
+    fn allowlist_is_exact_match_not_substring() {
+        let ch = DiscordChannel::new("fake".into(), None, vec!["111".into()]);
+        assert!(!ch.is_user_allowed("1111"));
+        assert!(!ch.is_user_allowed("11"));
+        assert!(!ch.is_user_allowed("0111"));
+    }
+
+    #[test]
+    fn allowlist_empty_string_user_id() {
+        let ch = DiscordChannel::new("fake".into(), None, vec!["111".into()]);
+        assert!(!ch.is_user_allowed(""));
+    }
+
+    #[test]
+    fn allowlist_with_wildcard_and_specific() {
+        let ch = DiscordChannel::new("fake".into(), None, vec!["111".into(), "*".into()]);
+        assert!(ch.is_user_allowed("111"));
+        assert!(ch.is_user_allowed("anyone_else"));
+    }
+
+    #[test]
+    fn allowlist_case_sensitive() {
+        let ch = DiscordChannel::new("fake".into(), None, vec!["ABC".into()]);
+        assert!(ch.is_user_allowed("ABC"));
+        assert!(!ch.is_user_allowed("abc"));
+        assert!(!ch.is_user_allowed("Abc"));
+    }
+
+    #[test]
+    fn base64_decode_empty_string() {
+        let decoded = base64_decode("");
+        assert_eq!(decoded, Some(String::new()));
+    }
+
+    #[test]
+    fn base64_decode_invalid_chars() {
+        let decoded = base64_decode("!!!!");
+        assert!(decoded.is_none());
+    }
+
+    #[test]
+    fn bot_user_id_from_empty_token() {
+        let id = DiscordChannel::bot_user_id_from_token("");
+        assert_eq!(id, Some(String::new()));
+    }
 }

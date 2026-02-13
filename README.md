@@ -15,7 +15,7 @@
 The fastest, smallest, fully autonomous AI assistant — deploy anywhere, swap anything.
 
 ```
-~3MB binary · <10ms startup · 502 tests · 22 providers · Pluggable everything
+~3MB binary · <10ms startup · 629 tests · 22 providers · Pluggable everything
 ```
 
 ## Quick Start
@@ -54,6 +54,51 @@ cargo run --release -- tools test memory_recall '{"query": "Rust"}'
 
 Every subsystem is a **trait** — swap implementations with a config change, zero code changes.
 
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        ZeroClaw Architecture                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌──────────────┐    ┌──────────────────────────────────────────┐   │
+│  │  Chat Apps    │    │            Security Layer                │   │
+│  │              │    │                                          │   │
+│  │  Telegram ───┤    │  ┌─────────────┐  ┌──────────────────┐  │   │
+│  │  Discord  ───┤    │  │ Auth Gate   │  │  Rate Limiter    │  │   │
+│  │  Slack    ───┼───►│  │             │  │                  │  │   │
+│  │  iMessage ───┤    │  │ • allowed_  │  │ • sliding window │  │   │
+│  │  Matrix   ───┤    │  │   users     │  │ • max actions/hr │  │   │
+│  │  CLI      ───┤    │  │ • webhook   │  │ • max cost/day   │  │   │
+│  │  Webhook  ───┤    │  │   secret    │  │                  │  │   │
+│  └──────────────┘    │  └──────┬──────┘  └────────┬─────────┘  │   │
+│                      │         │                  │            │   │
+│                      └─────────┼──────────────────┼────────────┘   │
+│                                ▼                  ▼                │
+│                      ┌──────────────────────────────────────┐      │
+│                      │           Agent Loop                 │      │
+│                      │                                      │      │
+│                      │  Message ──► LLM ──► Tools ──► Reply │      │
+│                      │     ▲                  │             │      │
+│                      │     │    ┌─────────────┘             │      │
+│                      │     │    ▼                           │      │
+│                      │  ┌──────────────┐  ┌─────────────┐  │      │
+│                      │  │   Context     │  │  Sandbox    │  │      │
+│                      │  │              │  │             │  │      │
+│                      │  │ • Memory     │  │ • allowlist │  │      │
+│                      │  │ • Skills     │  │ • path jail │  │      │
+│                      │  │ • Workspace  │  │ • forbidden │  │      │
+│                      │  │   MD files   │  │   paths     │  │      │
+│                      │  └──────────────┘  └─────────────┘  │      │
+│                      └──────────────────────────────────────┘      │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │                     AI Providers (22)                         │   │
+│  │  OpenRouter · Anthropic · OpenAI · Mistral · Groq · Venice   │   │
+│  │  Ollama · xAI · DeepSeek · Cerebras · Fireworks · Together   │   │
+│  │  Cloudflare · Moonshot · GLM · MiniMax · Qianfan · + more    │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
 | Subsystem | Trait | Ships with | Extend |
 |-----------|-------|------------|--------|
 | **AI Models** | `Provider` | 22 providers (OpenRouter, Anthropic, OpenAI, Venice, Groq, Mistral, etc.) | Any OpenAI-compatible API |
@@ -74,13 +119,39 @@ ZeroClaw has a built-in brain. The agent automatically:
 
 Two backends — **SQLite** (default, searchable, upsert, delete) and **Markdown** (human-readable, append-only, git-friendly). Switch with one config line.
 
-### Security
+### Security Architecture
+
+ZeroClaw enforces security at **every layer** — not just the sandbox. Every message passes through authentication and rate limiting before reaching the agent.
+
+#### Layer 1: Channel Authentication
+
+Every channel validates the sender **before** the message reaches the agent loop:
+
+| Channel | Auth Method | Config |
+|---------|------------|--------|
+| **Telegram** | `allowed_users` list (username match) | `[channels.telegram] allowed_users` |
+| **Discord** | `allowed_users` list (user ID match) | `[channels.discord] allowed_users` |
+| **Slack** | `allowed_users` list (user ID match) | `[channels.slack] allowed_users` |
+| **Matrix** | `allowed_users` list (MXID match) | `[channels.matrix] allowed_users` |
+| **iMessage** | `allowed_contacts` list | `[channels.imessage] allowed_contacts` |
+| **Webhook** | `X-Webhook-Secret` header (shared secret) | `[channels.webhook] secret` |
+| **CLI** | Local-only (inherently trusted) | — |
+
+> **Note:** An empty `allowed_users` list or `["*"]` allows all users (open mode). Set specific IDs for production.
+
+#### Layer 2: Rate Limiting
+
+- **Sliding-window tracker** — counts actions within a 1-hour rolling window
+- **`max_actions_per_hour`** — hard cap on tool executions (default: 20)
+- **`max_cost_per_day_cents`** — daily cost ceiling (default: $5.00)
+
+#### Layer 3: Tool Sandbox
 
 - **Workspace sandboxing** — can't escape workspace directory
-- **Command allowlisting** — only approved shell commands
+- **Command allowlisting** — only approved shell commands (`git`, `cargo`, `ls`, etc.)
 - **Path traversal blocking** — `..` and absolute paths blocked
-- **Rate limiting** — max actions/hour, max cost/day
-- **Autonomy levels** — ReadOnly, Supervised, Full
+- **Forbidden paths** — `/etc`, `/root`, `~/.ssh`, `~/.gnupg` always blocked
+- **Autonomy levels** — `ReadOnly` (observe only), `Supervised` (acts with policy), `Full` (autonomous within bounds)
 
 ## Configuration
 
@@ -227,7 +298,7 @@ interval_minutes = 30
 ```bash
 cargo build              # Dev build
 cargo build --release    # Release build (~3MB)
-cargo test               # 502 tests
+cargo test               # 629 tests
 cargo clippy             # Lint (0 warnings)
 
 # Run the SQLite vs Markdown benchmark
