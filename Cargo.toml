@@ -1,0 +1,76 @@
+[package]
+name = "zeroclaw"
+version = "0.1.0"
+edition = "2021"
+authors = ["theonlyhennygod"]
+license = "MIT"
+description = "Zero overhead. Zero compromise. 100% Rust. The fastest, smallest AI assistant."
+repository = "https://github.com/theonlyhennygod/zeroclaw"
+readme = "README.md"
+keywords = ["ai", "agent", "cli", "assistant", "chatbot"]
+categories = ["command-line-utilities", "api-bindings"]
+
+[dependencies]
+# CLI - minimal and fast
+clap = { version = "4.5", features = ["derive"] }
+
+# Async runtime - feature-optimized for size
+tokio = { version = "1.42", default-features = false, features = ["rt-multi-thread", "macros", "time", "net", "io-util", "sync", "process", "io-std", "fs"] }
+
+# HTTP client - minimal features
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking"] }
+
+# Serialization
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde_json = { version = "1.0", default-features = false, features = ["std"] }
+
+# Config
+directories = "5.0"
+toml = "0.8"
+shellexpand = "3.1"
+
+# Logging - minimal
+tracing = { version = "0.1", default-features = false }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "ansi"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# UUID generation
+uuid = { version = "1.11", default-features = false, features = ["v4", "std"] }
+
+# Async traits
+async-trait = "0.1"
+
+# Memory / persistence
+rusqlite = { version = "0.32", features = ["bundled"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+# Interactive CLI prompts
+dialoguer = { version = "0.11", features = ["fuzzy-select"] }
+console = "0.15"
+
+# Discord WebSocket gateway
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
+hostname = "0.4.2"
+
+[profile.release]
+opt-level = "z"      # Optimize for size
+lto = true          # Link-time optimization
+codegen-units = 1   # Better optimization
+strip = true        # Remove debug symbols
+panic = "abort"     # Reduce binary size
+
+[profile.dist]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.14"
