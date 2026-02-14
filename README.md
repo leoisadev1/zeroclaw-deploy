@@ -62,7 +62,7 @@ cargo run --release -- integrations list
 Every subsystem is a **trait** — swap implementations with a config change, zero code changes.
 
 <p align="center">
-  <img src="architecture.jpeg" alt="ZeroClaw Architecture" width="800" />
+  <img src="docs/architecture.svg" alt="ZeroClaw Architecture" width="900" />
 </p>
 
 | Subsystem | Trait | Ships with | Extend |
