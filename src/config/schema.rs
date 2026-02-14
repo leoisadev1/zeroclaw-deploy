@@ -46,6 +46,49 @@ pub struct MemoryConfig {
     pub backend: String,
     /// Auto-save conversation context to memory
     pub auto_save: bool,
+    /// Embedding provider: "none" | "openai" | "custom:URL"
+    #[serde(default = "default_embedding_provider")]
+    pub embedding_provider: String,
+    /// Embedding model name (e.g. "text-embedding-3-small")
+    #[serde(default = "default_embedding_model")]
+    pub embedding_model: String,
+    /// Embedding vector dimensions
+    #[serde(default = "default_embedding_dims")]
+    pub embedding_dimensions: usize,
+    /// Weight for vector similarity in hybrid search (0.0–1.0)
+    #[serde(default = "default_vector_weight")]
+    pub vector_weight: f64,
+    /// Weight for keyword BM25 in hybrid search (0.0–1.0)
+    #[serde(default = "default_keyword_weight")]
+    pub keyword_weight: f64,
+    /// Max embedding cache entries before LRU eviction
+    #[serde(default = "default_cache_size")]
+    pub embedding_cache_size: usize,
+    /// Max tokens per chunk for document splitting
+    #[serde(default = "default_chunk_size")]
+    pub chunk_max_tokens: usize,
+}
+
+fn default_embedding_provider() -> String {
+    "none".into()
+}
+fn default_embedding_model() -> String {
+    "text-embedding-3-small".into()
+}
+fn default_embedding_dims() -> usize {
+    1536
+}
+fn default_vector_weight() -> f64 {
+    0.7
+}
+fn default_keyword_weight() -> f64 {
+    0.3
+}
+fn default_cache_size() -> usize {
+    10_000
+}
+fn default_chunk_size() -> usize {
+    512
 }
 
 impl Default for MemoryConfig {
@@ -53,6 +96,13 @@ impl Default for MemoryConfig {
         Self {
             backend: "sqlite".into(),
             auto_save: true,
+            embedding_provider: default_embedding_provider(),
+            embedding_model: default_embedding_model(),
+            embedding_dimensions: default_embedding_dims(),
+            vector_weight: default_vector_weight(),
+            keyword_weight: default_keyword_weight(),
+            embedding_cache_size: default_cache_size(),
+            chunk_max_tokens: default_chunk_size(),
         }
     }
 }

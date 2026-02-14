@@ -25,6 +25,7 @@ pub async fn run_gateway(host: &str, port: u16, config: Config) -> Result<()> {
     let mem: Arc<dyn Memory> = Arc::from(memory::create_memory(
         &config.memory,
         &config.workspace_dir,
+        config.api_key.as_deref(),
     )?);
 
     // Extract webhook secret for authentication

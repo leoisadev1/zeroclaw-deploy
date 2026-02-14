@@ -49,6 +49,7 @@ pub async fn run(
     let mem: Arc<dyn Memory> = Arc::from(memory::create_memory(
         &config.memory,
         &config.workspace_dir,
+        config.api_key.as_deref(),
     )?);
     tracing::info!(backend = mem.name(), "Memory initialized");
 

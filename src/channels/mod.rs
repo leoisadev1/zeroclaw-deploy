@@ -227,6 +227,7 @@ pub async fn start_channels(config: Config) -> Result<()> {
     let mem: Arc<dyn Memory> = Arc::from(memory::create_memory(
         &config.memory,
         &config.workspace_dir,
+        config.api_key.as_deref(),
     )?);
 
     // Build system prompt from workspace identity files + skills

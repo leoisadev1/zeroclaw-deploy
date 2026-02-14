@@ -1,6 +1,9 @@
+pub mod chunker;
+pub mod embeddings;
 pub mod markdown;
 pub mod sqlite;
 pub mod traits;
+pub mod vector;
 
 pub use markdown::MarkdownMemory;
 pub use sqlite::SqliteMemory;
@@ -10,14 +13,34 @@ pub use traits::{MemoryCategory, MemoryEntry};
 
 use crate::config::MemoryConfig;
 use std::path::Path;
+use std::sync::Arc;
 
 /// Factory: create the right memory backend from config
 pub fn create_memory(
     config: &MemoryConfig,
     workspace_dir: &Path,
+    api_key: Option<&str>,
 ) -> anyhow::Result<Box<dyn Memory>> {
     match config.backend.as_str() {
-        "sqlite" => Ok(Box::new(SqliteMemory::new(workspace_dir)?)),
+        "sqlite" => {
+            let embedder: Arc<dyn embeddings::EmbeddingProvider> =
+                Arc::from(embeddings::create_embedding_provider(
+                    &config.embedding_provider,
+                    api_key,
+                    &config.embedding_model,
+                    config.embedding_dimensions,
+                ));
+
+            #[allow(clippy::cast_possible_truncation)]
+            let mem = SqliteMemory::with_embedder(
+                workspace_dir,
+                embedder,
+                config.vector_weight as f32,
+                config.keyword_weight as f32,
+                config.embedding_cache_size,
+            )?;
+            Ok(Box::new(mem))
+        }
         "markdown" | "none" => Ok(Box::new(MarkdownMemory::new(workspace_dir))),
         other => {
             tracing::warn!("Unknown memory backend '{other}', falling back to markdown");
@@ -36,9 +59,9 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let cfg = MemoryConfig {
             backend: "sqlite".into(),
-            auto_save: true,
+            ..MemoryConfig::default()
         };
-        let mem = create_memory(&cfg, tmp.path()).unwrap();
+        let mem = create_memory(&cfg, tmp.path(), None).unwrap();
         assert_eq!(mem.name(), "sqlite");
     }
 
@@ -47,9 +70,9 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let cfg = MemoryConfig {
             backend: "markdown".into(),
-            auto_save: true,
+            ..MemoryConfig::default()
         };
-        let mem = create_memory(&cfg, tmp.path()).unwrap();
+        let mem = create_memory(&cfg, tmp.path(), None).unwrap();
         assert_eq!(mem.name(), "markdown");
     }
 
@@ -58,9 +81,9 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let cfg = MemoryConfig {
             backend: "none".into(),
-            auto_save: true,
+            ..MemoryConfig::default()
         };
-        let mem = create_memory(&cfg, tmp.path()).unwrap();
+        let mem = create_memory(&cfg, tmp.path(), None).unwrap();
         assert_eq!(mem.name(), "markdown");
     }
 
@@ -69,9 +92,9 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let cfg = MemoryConfig {
             backend: "redis".into(),
-            auto_save: true,
+            ..MemoryConfig::default()
         };
-        let mem = create_memory(&cfg, tmp.path()).unwrap();
+        let mem = create_memory(&cfg, tmp.path(), None).unwrap();
         assert_eq!(mem.name(), "markdown");
     }
 }

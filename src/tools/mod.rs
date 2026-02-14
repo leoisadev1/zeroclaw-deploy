@@ -51,6 +51,7 @@ pub async fn handle_command(command: super::ToolCommands, config: Config) -> Res
     let mem: Arc<dyn Memory> = Arc::from(crate::memory::create_memory(
         &config.memory,
         &config.workspace_dir,
+        config.api_key.as_deref(),
     )?);
     let tools_list = all_tools(security, mem);
 
