@@ -69,7 +69,7 @@ enum Commands {
 
     /// Start the gateway server (webhooks, websockets)
     Gateway {
-        /// Port to listen on
+        /// Port to listen on (use 0 for random available port)
         #[arg(short, long, default_value = "8080")]
         port: u16,
 
@@ -234,9 +234,11 @@ async fn main() -> Result<()> {
         } => agent::run(config, message, provider, model, temperature).await,
 
         Commands::Gateway { port, host } => {
-            info!("🚀 Starting ZeroClaw Gateway on {host}:{port}");
-            info!("POST http://{host}:{port}/webhook  — send JSON messages");
-            info!("GET  http://{host}:{port}/health    — health check");
+            if port == 0 {
+                info!("🚀 Starting ZeroClaw Gateway on {host} (random port)");
+            } else {
+                info!("🚀 Starting ZeroClaw Gateway on {host}:{port}");
+            }
             gateway::run_gateway(&host, port, config).await
         }
 
