@@ -187,4 +187,66 @@ mod tests {
         assert_eq!(p.name(), "openai"); // uses OpenAiEmbedding internally
         assert_eq!(p.dimensions(), 768);
     }
+
+    // ── Edge cases ───────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn noop_embed_one_returns_error() {
+        let p = NoopEmbedding;
+        // embed returns empty vec → pop() returns None → error
+        let result = p.embed_one("hello").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn noop_embed_empty_batch() {
+        let p = NoopEmbedding;
+        let result = p.embed(&[]).await.unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[tokio::test]
+    async fn noop_embed_multiple_texts() {
+        let p = NoopEmbedding;
+        let result = p.embed(&["a", "b", "c"]).await.unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn factory_empty_string_returns_noop() {
+        let p = create_embedding_provider("", None, "model", 1536);
+        assert_eq!(p.name(), "none");
+    }
+
+    #[test]
+    fn factory_unknown_provider_returns_noop() {
+        let p = create_embedding_provider("cohere", None, "model", 1536);
+        assert_eq!(p.name(), "none");
+    }
+
+    #[test]
+    fn factory_custom_empty_url() {
+        // "custom:" with no URL — should still construct without panic
+        let p = create_embedding_provider("custom:", None, "model", 768);
+        assert_eq!(p.name(), "openai");
+    }
+
+    #[test]
+    fn factory_openai_no_api_key() {
+        let p = create_embedding_provider("openai", None, "text-embedding-3-small", 1536);
+        assert_eq!(p.name(), "openai");
+        assert_eq!(p.dimensions(), 1536);
+    }
+
+    #[test]
+    fn openai_trailing_slash_stripped() {
+        let p = OpenAiEmbedding::new("https://api.openai.com/", "key", "model", 1536);
+        assert_eq!(p.base_url, "https://api.openai.com");
+    }
+
+    #[test]
+    fn openai_dimensions_custom() {
+        let p = OpenAiEmbedding::new("http://localhost", "k", "m", 384);
+        assert_eq!(p.dimensions(), 384);
+    }
 }

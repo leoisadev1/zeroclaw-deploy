@@ -1045,4 +1045,321 @@ mod tests {
             assert!(r.score.is_some(), "Expected score on result: {:?}", r.key);
         }
     }
+
+    // ── Edge cases: FTS5 special characters ──────────────────────
+
+    #[tokio::test]
+    async fn recall_with_quotes_in_query() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("q1", "He said hello world", MemoryCategory::Core)
+            .await
+            .unwrap();
+        // Quotes in query should not crash FTS5
+        let results = mem.recall("\"hello\"", 10).await.unwrap();
+        // May or may not match depending on FTS5 escaping, but must not error
+        assert!(results.len() <= 10);
+    }
+
+    #[tokio::test]
+    async fn recall_with_asterisk_in_query() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("a1", "wildcard test content", MemoryCategory::Core)
+            .await
+            .unwrap();
+        let results = mem.recall("wild*", 10).await.unwrap();
+        assert!(results.len() <= 10);
+    }
+
+    #[tokio::test]
+    async fn recall_with_parentheses_in_query() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("p1", "function call test", MemoryCategory::Core)
+            .await
+            .unwrap();
+        let results = mem.recall("function()", 10).await.unwrap();
+        assert!(results.len() <= 10);
+    }
+
+    #[tokio::test]
+    async fn recall_with_sql_injection_attempt() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("safe", "normal content", MemoryCategory::Core)
+            .await
+            .unwrap();
+        // Should not crash or leak data
+        let results = mem.recall("'; DROP TABLE memories; --", 10).await.unwrap();
+        assert!(results.len() <= 10);
+        // Table should still exist
+        assert_eq!(mem.count().await.unwrap(), 1);
+    }
+
+    // ── Edge cases: store ────────────────────────────────────────
+
+    #[tokio::test]
+    async fn store_empty_content() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("empty", "", MemoryCategory::Core).await.unwrap();
+        let entry = mem.get("empty").await.unwrap().unwrap();
+        assert_eq!(entry.content, "");
+    }
+
+    #[tokio::test]
+    async fn store_empty_key() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("", "content for empty key", MemoryCategory::Core)
+            .await
+            .unwrap();
+        let entry = mem.get("").await.unwrap().unwrap();
+        assert_eq!(entry.content, "content for empty key");
+    }
+
+    #[tokio::test]
+    async fn store_very_long_content() {
+        let (_tmp, mem) = temp_sqlite();
+        let long_content = "x".repeat(100_000);
+        mem.store("long", &long_content, MemoryCategory::Core)
+            .await
+            .unwrap();
+        let entry = mem.get("long").await.unwrap().unwrap();
+        assert_eq!(entry.content.len(), 100_000);
+    }
+
+    #[tokio::test]
+    async fn store_unicode_and_emoji() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("emoji_key_🦀", "こんにちは 🚀 Ñoño", MemoryCategory::Core)
+            .await
+            .unwrap();
+        let entry = mem.get("emoji_key_🦀").await.unwrap().unwrap();
+        assert_eq!(entry.content, "こんにちは 🚀 Ñoño");
+    }
+
+    #[tokio::test]
+    async fn store_content_with_newlines_and_tabs() {
+        let (_tmp, mem) = temp_sqlite();
+        let content = "line1\nline2\ttab\rcarriage\n\nnewparagraph";
+        mem.store("whitespace", content, MemoryCategory::Core)
+            .await
+            .unwrap();
+        let entry = mem.get("whitespace").await.unwrap().unwrap();
+        assert_eq!(entry.content, content);
+    }
+
+    // ── Edge cases: recall ───────────────────────────────────────
+
+    #[tokio::test]
+    async fn recall_single_character_query() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("a", "x marks the spot", MemoryCategory::Core)
+            .await
+            .unwrap();
+        // Single char may not match FTS5 but LIKE fallback should work
+        let results = mem.recall("x", 10).await.unwrap();
+        // Should not crash; may or may not find results
+        assert!(results.len() <= 10);
+    }
+
+    #[tokio::test]
+    async fn recall_limit_zero() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("a", "some content", MemoryCategory::Core)
+            .await
+            .unwrap();
+        let results = mem.recall("some", 0).await.unwrap();
+        assert!(results.is_empty());
+    }
+
+    #[tokio::test]
+    async fn recall_limit_one() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("a", "matching content alpha", MemoryCategory::Core)
+            .await
+            .unwrap();
+        mem.store("b", "matching content beta", MemoryCategory::Core)
+            .await
+            .unwrap();
+        let results = mem.recall("matching content", 1).await.unwrap();
+        assert_eq!(results.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn recall_matches_by_key_not_just_content() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store(
+            "rust_preferences",
+            "User likes systems programming",
+            MemoryCategory::Core,
+        )
+        .await
+        .unwrap();
+        // "rust" appears in key but not content — LIKE fallback checks key too
+        let results = mem.recall("rust", 10).await.unwrap();
+        assert!(!results.is_empty(), "Should match by key");
+    }
+
+    #[tokio::test]
+    async fn recall_unicode_query() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("jp", "日本語のテスト", MemoryCategory::Core)
+            .await
+            .unwrap();
+        let results = mem.recall("日本語", 10).await.unwrap();
+        assert!(!results.is_empty());
+    }
+
+    // ── Edge cases: schema idempotency ───────────────────────────
+
+    #[tokio::test]
+    async fn schema_idempotent_reopen() {
+        let tmp = TempDir::new().unwrap();
+        {
+            let mem = SqliteMemory::new(tmp.path()).unwrap();
+            mem.store("k1", "v1", MemoryCategory::Core).await.unwrap();
+        }
+        // Open again — init_schema runs again on existing DB
+        let mem2 = SqliteMemory::new(tmp.path()).unwrap();
+        let entry = mem2.get("k1").await.unwrap();
+        assert!(entry.is_some());
+        assert_eq!(entry.unwrap().content, "v1");
+        // Store more data — should work fine
+        mem2.store("k2", "v2", MemoryCategory::Daily).await.unwrap();
+        assert_eq!(mem2.count().await.unwrap(), 2);
+    }
+
+    #[tokio::test]
+    async fn schema_triple_open() {
+        let tmp = TempDir::new().unwrap();
+        let _m1 = SqliteMemory::new(tmp.path()).unwrap();
+        let _m2 = SqliteMemory::new(tmp.path()).unwrap();
+        let m3 = SqliteMemory::new(tmp.path()).unwrap();
+        assert!(m3.health_check().await);
+    }
+
+    // ── Edge cases: forget + FTS5 consistency ────────────────────
+
+    #[tokio::test]
+    async fn forget_then_recall_no_ghost_results() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("ghost", "phantom memory content", MemoryCategory::Core)
+            .await
+            .unwrap();
+        mem.forget("ghost").await.unwrap();
+        let results = mem.recall("phantom memory", 10).await.unwrap();
+        assert!(
+            results.is_empty(),
+            "Deleted memory should not appear in recall"
+        );
+    }
+
+    #[tokio::test]
+    async fn forget_and_re_store_same_key() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("cycle", "version 1", MemoryCategory::Core)
+            .await
+            .unwrap();
+        mem.forget("cycle").await.unwrap();
+        mem.store("cycle", "version 2", MemoryCategory::Core)
+            .await
+            .unwrap();
+        let entry = mem.get("cycle").await.unwrap().unwrap();
+        assert_eq!(entry.content, "version 2");
+        assert_eq!(mem.count().await.unwrap(), 1);
+    }
+
+    // ── Edge cases: reindex ──────────────────────────────────────
+
+    #[tokio::test]
+    async fn reindex_empty_db() {
+        let (_tmp, mem) = temp_sqlite();
+        let count = mem.reindex().await.unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[tokio::test]
+    async fn reindex_twice_is_safe() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("r1", "reindex data", MemoryCategory::Core)
+            .await
+            .unwrap();
+        mem.reindex().await.unwrap();
+        let count = mem.reindex().await.unwrap();
+        assert_eq!(count, 0); // Noop embedder → nothing to re-embed
+                              // Data should still be intact
+        let results = mem.recall("reindex", 10).await.unwrap();
+        assert_eq!(results.len(), 1);
+    }
+
+    // ── Edge cases: content_hash ─────────────────────────────────
+
+    #[test]
+    fn content_hash_empty_string() {
+        let h = SqliteMemory::content_hash("");
+        assert!(!h.is_empty());
+        assert_eq!(h.len(), 16); // 16 hex chars
+    }
+
+    #[test]
+    fn content_hash_unicode() {
+        let h1 = SqliteMemory::content_hash("🦀");
+        let h2 = SqliteMemory::content_hash("🦀");
+        assert_eq!(h1, h2);
+        let h3 = SqliteMemory::content_hash("🚀");
+        assert_ne!(h1, h3);
+    }
+
+    #[test]
+    fn content_hash_long_input() {
+        let long = "a".repeat(1_000_000);
+        let h = SqliteMemory::content_hash(&long);
+        assert_eq!(h.len(), 16);
+    }
+
+    // ── Edge cases: category helpers ─────────────────────────────
+
+    #[test]
+    fn category_roundtrip_custom_with_spaces() {
+        let cat = MemoryCategory::Custom("my custom category".into());
+        let s = SqliteMemory::category_to_str(&cat);
+        assert_eq!(s, "my custom category");
+        let back = SqliteMemory::str_to_category(&s);
+        assert_eq!(back, cat);
+    }
+
+    #[test]
+    fn category_roundtrip_empty_custom() {
+        let cat = MemoryCategory::Custom(String::new());
+        let s = SqliteMemory::category_to_str(&cat);
+        assert_eq!(s, "");
+        let back = SqliteMemory::str_to_category(&s);
+        assert_eq!(back, MemoryCategory::Custom(String::new()));
+    }
+
+    // ── Edge cases: list ─────────────────────────────────────────
+
+    #[tokio::test]
+    async fn list_custom_category() {
+        let (_tmp, mem) = temp_sqlite();
+        mem.store("c1", "custom1", MemoryCategory::Custom("project".into()))
+            .await
+            .unwrap();
+        mem.store("c2", "custom2", MemoryCategory::Custom("project".into()))
+            .await
+            .unwrap();
+        mem.store("c3", "other", MemoryCategory::Core)
+            .await
+            .unwrap();
+
+        let project = mem
+            .list(Some(&MemoryCategory::Custom("project".into())))
+            .await
+            .unwrap();
+        assert_eq!(project.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn list_empty_db() {
+        let (_tmp, mem) = temp_sqlite();
+        let all = mem.list(None).await.unwrap();
+        assert!(all.is_empty());
+    }
 }

@@ -19,13 +19,18 @@ pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
     }
 
     let denom = norm_a.sqrt() * norm_b.sqrt();
-    if denom < f64::EPSILON {
+    if !denom.is_finite() || denom < f64::EPSILON {
+        return 0.0;
+    }
+
+    let raw = dot / denom;
+    if !raw.is_finite() {
         return 0.0;
     }
 
     // Clamp to [0, 1] — embeddings are typically positive
     #[allow(clippy::cast_possible_truncation)]
-    let sim = (dot / denom).clamp(0.0, 1.0) as f32;
+    let sim = raw.clamp(0.0, 1.0) as f32;
     sim
 }
 
@@ -230,5 +235,160 @@ mod tests {
     fn hybrid_merge_empty_inputs() {
         let merged = hybrid_merge(&[], &[], 0.7, 0.3, 10);
         assert!(merged.is_empty());
+    }
+
+    // ── Edge cases: cosine similarity ────────────────────────────
+
+    #[test]
+    fn cosine_nan_returns_zero() {
+        let a = vec![f32::NAN, 1.0, 2.0];
+        let b = vec![1.0, 2.0, 3.0];
+        let sim = cosine_similarity(&a, &b);
+        // NaN propagates through arithmetic — result should be 0.0 (clamped or denom check)
+        assert!(sim.is_finite(), "Expected finite, got {sim}");
+    }
+
+    #[test]
+    fn cosine_infinity_returns_zero_or_finite() {
+        let a = vec![f32::INFINITY, 1.0];
+        let b = vec![1.0, 2.0];
+        let sim = cosine_similarity(&a, &b);
+        assert!(sim.is_finite(), "Expected finite, got {sim}");
+    }
+
+    #[test]
+    fn cosine_negative_values() {
+        let a = vec![-1.0, -2.0, -3.0];
+        let b = vec![-1.0, -2.0, -3.0];
+        // Identical negative vectors → cosine = 1.0, but clamped to [0,1]
+        let sim = cosine_similarity(&a, &b);
+        assert!((sim - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn cosine_opposite_vectors_clamped() {
+        let a = vec![1.0, 0.0];
+        let b = vec![-1.0, 0.0];
+        // Cosine = -1.0, clamped to 0.0
+        let sim = cosine_similarity(&a, &b);
+        assert_eq!(sim, 0.0);
+    }
+
+    #[test]
+    fn cosine_high_dimensional() {
+        let a: Vec<f32> = (0..1536).map(|i| (i as f32) * 0.001).collect();
+        let b: Vec<f32> = (0..1536).map(|i| (i as f32) * 0.001 + 0.0001).collect();
+        let sim = cosine_similarity(&a, &b);
+        assert!(
+            sim > 0.99,
+            "High-dim similar vectors should be close: {sim}"
+        );
+    }
+
+    #[test]
+    fn cosine_single_element() {
+        assert!((cosine_similarity(&[5.0], &[5.0]) - 1.0).abs() < 0.001);
+        assert_eq!(cosine_similarity(&[5.0], &[-5.0]), 0.0);
+    }
+
+    #[test]
+    fn cosine_both_zero_vectors() {
+        let a = vec![0.0, 0.0];
+        let b = vec![0.0, 0.0];
+        assert_eq!(cosine_similarity(&a, &b), 0.0);
+    }
+
+    // ── Edge cases: vec↔bytes serialization ──────────────────────
+
+    #[test]
+    fn bytes_to_vec_non_aligned_truncates() {
+        // 5 bytes → only first 4 used (1 float), last byte dropped
+        let bytes = vec![0u8, 0, 0, 0, 0xFF];
+        let result = bytes_to_vec(&bytes);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0], 0.0);
+    }
+
+    #[test]
+    fn bytes_to_vec_three_bytes_returns_empty() {
+        let bytes = vec![1u8, 2, 3];
+        let result = bytes_to_vec(&bytes);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn vec_bytes_roundtrip_special_values() {
+        let special = vec![f32::MIN, f32::MAX, f32::EPSILON, -0.0, 0.0];
+        let bytes = vec_to_bytes(&special);
+        let restored = bytes_to_vec(&bytes);
+        assert_eq!(special.len(), restored.len());
+        for (a, b) in special.iter().zip(restored.iter()) {
+            assert_eq!(a.to_bits(), b.to_bits());
+        }
+    }
+
+    #[test]
+    fn vec_bytes_roundtrip_nan_preserves_bits() {
+        let nan_vec = vec![f32::NAN];
+        let bytes = vec_to_bytes(&nan_vec);
+        let restored = bytes_to_vec(&bytes);
+        assert!(restored[0].is_nan());
+    }
+
+    // ── Edge cases: hybrid merge ─────────────────────────────────
+
+    #[test]
+    fn hybrid_merge_limit_zero() {
+        let vec_results = vec![("a".into(), 0.9)];
+        let merged = hybrid_merge(&vec_results, &[], 0.7, 0.3, 0);
+        assert!(merged.is_empty());
+    }
+
+    #[test]
+    fn hybrid_merge_zero_weights() {
+        let vec_results = vec![("a".into(), 0.9)];
+        let kw_results = vec![("b".into(), 10.0)];
+        let merged = hybrid_merge(&vec_results, &kw_results, 0.0, 0.0, 10);
+        // All final scores should be 0.0
+        for r in &merged {
+            assert_eq!(r.final_score, 0.0);
+        }
+    }
+
+    #[test]
+    fn hybrid_merge_negative_keyword_scores() {
+        // BM25 scores are negated in our code, but raw negatives shouldn't crash
+        let kw_results = vec![("a".into(), -5.0), ("b".into(), -1.0)];
+        let merged = hybrid_merge(&[], &kw_results, 0.7, 0.3, 10);
+        assert_eq!(merged.len(), 2);
+        // Should still produce finite scores
+        for r in &merged {
+            assert!(r.final_score.is_finite());
+        }
+    }
+
+    #[test]
+    fn hybrid_merge_duplicate_ids_in_same_source() {
+        let vec_results = vec![("a".into(), 0.9), ("a".into(), 0.5)];
+        let merged = hybrid_merge(&vec_results, &[], 1.0, 0.0, 10);
+        // Should deduplicate — only 1 entry for "a"
+        assert_eq!(merged.len(), 1);
+    }
+
+    #[test]
+    fn hybrid_merge_large_bm25_normalization() {
+        let kw_results = vec![("a".into(), 1000.0), ("b".into(), 500.0), ("c".into(), 1.0)];
+        let merged = hybrid_merge(&[], &kw_results, 0.0, 1.0, 10);
+        // "a" should have normalized score of 1.0
+        assert!((merged[0].keyword_score.unwrap() - 1.0).abs() < 0.001);
+        // "b" should have 0.5
+        assert!((merged[1].keyword_score.unwrap() - 0.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn hybrid_merge_single_item() {
+        let merged = hybrid_merge(&[("only".into(), 0.8)], &[], 0.7, 0.3, 10);
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].id, "only");
     }
 }
