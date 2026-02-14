@@ -1013,9 +1013,9 @@ default_temperature = 0.7
 
     #[test]
     fn composio_config_partial_toml() {
-        let toml_str = r#"
+        let toml_str = r"
 enabled = true
-"#;
+";
         let parsed: ComposioConfig = toml::from_str(toml_str).unwrap();
         assert!(parsed.enabled);
         assert!(parsed.api_key.is_none());

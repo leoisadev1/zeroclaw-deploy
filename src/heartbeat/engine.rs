@@ -193,7 +193,11 @@ mod tests {
 
     #[test]
     fn parse_tasks_many_tasks() {
-        let content: String = (0..100).map(|i| format!("- Task {i}\n")).collect();
+        let content: String = (0..100).fold(String::new(), |mut s, i| {
+            use std::fmt::Write;
+            let _ = writeln!(s, "- Task {i}");
+            s
+        });
         let tasks = HeartbeatEngine::parse_tasks(&content);
         assert_eq!(tasks.len(), 100);
         assert_eq!(tasks[99], "Task 99");

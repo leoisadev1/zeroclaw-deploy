@@ -763,7 +763,7 @@ mod tests {
     #[tokio::test]
     async fn sqlite_category_roundtrip() {
         let (_tmp, mem) = temp_sqlite();
-        let categories = vec![
+        let categories = [
             MemoryCategory::Core,
             MemoryCategory::Daily,
             MemoryCategory::Conversation,

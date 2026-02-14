@@ -62,7 +62,9 @@ mod tests {
 
     #[test]
     fn factory_empty_string_falls_back_to_noop() {
-        let cfg = ObservabilityConfig { backend: "".into() };
+        let cfg = ObservabilityConfig {
+            backend: String::new(),
+        };
         assert_eq!(create_observer(&cfg).name(), "noop");
     }
 

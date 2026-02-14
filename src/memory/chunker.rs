@@ -206,9 +206,14 @@ mod tests {
     #[test]
     fn respects_max_tokens() {
         // Build multi-line text (one sentence per line) to exercise line-level splitting
-        let long_text: String = (0..200)
-            .map(|i| format!("This is sentence number {i} with some extra words to fill it up.\n"))
-            .collect();
+        let long_text: String = (0..200).fold(String::new(), |mut s, i| {
+            use std::fmt::Write;
+            let _ = writeln!(
+                s,
+                "This is sentence number {i} with some extra words to fill it up."
+            );
+            s
+        });
         let chunks = chunk_markdown(&long_text, 50); // 50 tokens ≈ 200 chars
         assert!(
             chunks.len() > 1,
@@ -229,7 +234,8 @@ mod tests {
     fn preserves_heading_in_split_sections() {
         let mut text = String::from("## Big Section\n");
         for i in 0..100 {
-            text.push_str(&format!("Line {i} with some content here.\n\n"));
+            use std::fmt::Write;
+            let _ = write!(text, "Line {i} with some content here.\n\n");
         }
         let chunks = chunk_markdown(&text, 50);
         assert!(chunks.len() > 1);
@@ -355,7 +361,11 @@ mod tests {
     fn no_content_loss() {
         let text = "# A\nContent A line 1\nContent A line 2\n\n## B\nContent B\n\n## C\nContent C";
         let chunks = chunk_markdown(text, 512);
-        let reassembled: String = chunks.iter().map(|c| format!("{}\n", c.content)).collect();
+        let reassembled: String = chunks.iter().fold(String::new(), |mut s, c| {
+            use std::fmt::Write;
+            let _ = writeln!(s, "{}", c.content);
+            s
+        });
         // All original content words should appear
         for word in ["Content", "line", "1", "2"] {
             assert!(

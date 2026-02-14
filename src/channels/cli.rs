@@ -92,13 +92,13 @@ mod tests {
             sender: "user".into(),
             content: "hello".into(),
             channel: "cli".into(),
-            timestamp: 1234567890,
+            timestamp: 1_234_567_890,
         };
         assert_eq!(msg.id, "test-id");
         assert_eq!(msg.sender, "user");
         assert_eq!(msg.content, "hello");
         assert_eq!(msg.channel, "cli");
-        assert_eq!(msg.timestamp, 1234567890);
+        assert_eq!(msg.timestamp, 1_234_567_890);
     }
 
     #[test]

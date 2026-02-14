@@ -667,7 +667,7 @@ pub fn all_integrations() -> Vec<IntegrationEntry> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::schema::{ChannelsConfig, IMessageConfig, MatrixConfig, TelegramConfig};
+    use crate::config::schema::{IMessageConfig, MatrixConfig, TelegramConfig};
     use crate::config::Config;
 
     #[test]
@@ -685,7 +685,7 @@ mod tests {
         let entries = all_integrations();
         for cat in IntegrationCategory::all() {
             let count = entries.iter().filter(|e| e.category == *cat).count();
-            assert!(count > 0, "Category {:?} has no entries", cat);
+            assert!(count > 0, "Category {cat:?} has no entries");
         }
     }
 

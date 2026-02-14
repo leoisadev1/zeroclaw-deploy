@@ -396,7 +396,7 @@ mod tests {
 
     #[test]
     fn composio_actions_response_missing_items_defaults() {
-        let json_str = r#"{}"#;
+        let json_str = r"{}";
         let resp: ComposioActionsResponse = serde_json::from_str(json_str).unwrap();
         assert!(resp.items.is_empty());
     }

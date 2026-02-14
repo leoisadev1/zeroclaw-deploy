@@ -132,6 +132,12 @@ pub fn hybrid_merge(
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::float_cmp,
+    clippy::approx_constant,
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation
+)]
 mod tests {
     use super::*;
 
@@ -271,13 +277,15 @@ mod tests {
         let b = vec![-1.0, 0.0];
         // Cosine = -1.0, clamped to 0.0
         let sim = cosine_similarity(&a, &b);
-        assert_eq!(sim, 0.0);
+        assert!(sim.abs() < f32::EPSILON);
     }
 
     #[test]
     fn cosine_high_dimensional() {
-        let a: Vec<f32> = (0..1536).map(|i| (i as f32) * 0.001).collect();
-        let b: Vec<f32> = (0..1536).map(|i| (i as f32) * 0.001 + 0.0001).collect();
+        let a: Vec<f32> = (0..1536).map(|i| (f64::from(i) * 0.001) as f32).collect();
+        let b: Vec<f32> = (0..1536)
+            .map(|i| (f64::from(i) * 0.001 + 0.0001) as f32)
+            .collect();
         let sim = cosine_similarity(&a, &b);
         assert!(
             sim > 0.99,
@@ -288,14 +296,14 @@ mod tests {
     #[test]
     fn cosine_single_element() {
         assert!((cosine_similarity(&[5.0], &[5.0]) - 1.0).abs() < 0.001);
-        assert_eq!(cosine_similarity(&[5.0], &[-5.0]), 0.0);
+        assert!(cosine_similarity(&[5.0], &[-5.0]).abs() < f32::EPSILON);
     }
 
     #[test]
     fn cosine_both_zero_vectors() {
         let a = vec![0.0, 0.0];
         let b = vec![0.0, 0.0];
-        assert_eq!(cosine_similarity(&a, &b), 0.0);
+        assert!(cosine_similarity(&a, &b).abs() < f32::EPSILON);
     }
 
     // ── Edge cases: vec↔bytes serialization ──────────────────────
@@ -306,7 +314,7 @@ mod tests {
         let bytes = vec![0u8, 0, 0, 0, 0xFF];
         let result = bytes_to_vec(&bytes);
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0], 0.0);
+        assert!(result[0].abs() < f32::EPSILON);
     }
 
     #[test]
@@ -351,7 +359,7 @@ mod tests {
         let merged = hybrid_merge(&vec_results, &kw_results, 0.0, 0.0, 10);
         // All final scores should be 0.0
         for r in &merged {
-            assert_eq!(r.final_score, 0.0);
+            assert!(r.final_score.abs() < f32::EPSILON);
         }
     }
 

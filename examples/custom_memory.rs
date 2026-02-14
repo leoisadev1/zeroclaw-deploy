@@ -48,11 +48,17 @@ pub struct InMemoryBackend {
     store: Mutex<HashMap<String, MemoryEntry>>,
 }
 
-impl InMemoryBackend {
-    pub fn new() -> Self {
+impl Default for InMemoryBackend {
+    fn default() -> Self {
         Self {
             store: Mutex::new(HashMap::new()),
         }
+    }
+}
+
+impl InMemoryBackend {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 

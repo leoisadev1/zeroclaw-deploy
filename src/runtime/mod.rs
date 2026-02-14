@@ -64,7 +64,9 @@ mod tests {
 
     #[test]
     fn factory_empty_falls_back() {
-        let cfg = RuntimeConfig { kind: "".into() };
+        let cfg = RuntimeConfig {
+            kind: String::new(),
+        };
         let rt = create_runtime(&cfg);
         assert_eq!(rt.name(), "native");
     }

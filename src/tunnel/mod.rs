@@ -129,7 +129,7 @@ mod tests {
         CloudflareTunnelConfig, CustomTunnelConfig, NgrokTunnelConfig, TunnelConfig,
     };
 
-    /// Helper: assert create_tunnel returns an error containing `needle`.
+    /// Helper: assert `create_tunnel` returns an error containing `needle`.
     fn assert_tunnel_err(cfg: &TunnelConfig, needle: &str) {
         match create_tunnel(cfg) {
             Err(e) => assert!(

@@ -54,7 +54,7 @@ impl Channel for TelegramChannel {
 
     async fn send(&self, message: &str, chat_id: &str) -> Result<()> {
         self.client
-            .post(&self.api_url("sendMessage"))
+            .post(self.api_url("sendMessage"))
             .json(&serde_json::json!({
                 "chat_id": chat_id,
                 "text": message,
@@ -71,7 +71,7 @@ impl Channel for TelegramChannel {
         loop {
             let resp = self
                 .client
-                .get(&self.api_url("getUpdates"))
+                .get(self.api_url("getUpdates"))
                 .query(&[("offset", offset.to_string()), ("timeout", "30".into())])
                 .send()
                 .await?
@@ -110,7 +110,7 @@ impl Channel for TelegramChannel {
 
     async fn health_check(&self) -> bool {
         self.client
-            .get(&self.api_url("getMe"))
+            .get(self.api_url("getMe"))
             .send()
             .await
             .map(|r| r.status().is_success())

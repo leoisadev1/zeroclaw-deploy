@@ -326,6 +326,26 @@ async fn send_response(
     stream.write_all(response.as_bytes()).await
 }
 
+async fn send_json(
+    stream: &mut tokio::net::TcpStream,
+    status: u16,
+    body: &serde_json::Value,
+) -> std::io::Result<()> {
+    let reason = match status {
+        200 => "OK",
+        400 => "Bad Request",
+        404 => "Not Found",
+        500 => "Internal Server Error",
+        _ => "Unknown",
+    };
+    let json = serde_json::to_string(body).unwrap_or_default();
+    let response = format!(
+        "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{json}",
+        json.len()
+    );
+    stream.write_all(response.as_bytes()).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -501,24 +521,4 @@ mod tests {
     fn extract_header_newline_only_request() {
         assert_eq!(extract_header("\r\n\r\n", "X-Webhook-Secret"), None);
     }
-}
-
-async fn send_json(
-    stream: &mut tokio::net::TcpStream,
-    status: u16,
-    body: &serde_json::Value,
-) -> std::io::Result<()> {
-    let reason = match status {
-        200 => "OK",
-        400 => "Bad Request",
-        404 => "Not Found",
-        500 => "Internal Server Error",
-        _ => "Unknown",
-    };
-    let json = serde_json::to_string(body).unwrap_or_default();
-    let response = format!(
-        "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{json}",
-        json.len()
-    );
-    stream.write_all(response.as_bytes()).await
 }

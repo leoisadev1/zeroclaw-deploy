@@ -329,6 +329,7 @@ pub fn handle_command(command: super::SkillCommands, workspace_dir: &Path) -> Re
 }
 
 #[cfg(test)]
+#[allow(clippy::similar_names)]
 mod tests {
     use super::*;
     use std::fs;
