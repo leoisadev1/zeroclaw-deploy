@@ -145,16 +145,14 @@ impl PairingGuard {
     }
 }
 
-/// Generate a 6-digit numeric pairing code.
+/// Generate a 6-digit numeric pairing code using cryptographically secure randomness.
 fn generate_code() -> String {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-    use std::time::SystemTime;
-
-    let mut hasher = DefaultHasher::new();
-    SystemTime::now().hash(&mut hasher);
-    std::process::id().hash(&mut hasher);
-    let raw = hasher.finish();
+    // UUID v4 uses getrandom (backed by /dev/urandom on Linux, BCryptGenRandom
+    // on Windows) — a CSPRNG. We extract 4 bytes from it for a uniform random
+    // number in [0, 1_000_000).
+    let uuid = uuid::Uuid::new_v4();
+    let bytes = uuid.as_bytes();
+    let raw = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
     format!("{:06}", raw % 1_000_000)
 }
 
@@ -312,6 +310,15 @@ mod tests {
         let code = generate_code();
         assert_eq!(code.len(), 6);
         assert!(code.chars().all(|c| c.is_ascii_digit()));
+    }
+
+    #[test]
+    fn generate_code_is_not_deterministic() {
+        // Two codes generated in the same process should differ (with overwhelming
+        // probability — collision chance is 1 in 1,000,000).
+        let c1 = generate_code();
+        let c2 = generate_code();
+        assert_ne!(c1, c2, "Two consecutive codes should differ (CSPRNG)");
     }
 
     #[test]
