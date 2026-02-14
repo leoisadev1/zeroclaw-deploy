@@ -153,6 +153,138 @@ pub fn run_wizard() -> Result<Config> {
     Ok(config)
 }
 
+// ── Quick setup (zero prompts) ───────────────────────────────────
+
+/// Non-interactive setup: generates a sensible default config instantly.
+/// Use `zeroclaw onboard --quick` or `zeroclaw onboard --quick --api-key sk-... --provider openrouter`
+#[allow(clippy::too_many_lines)]
+pub fn run_quick_setup(api_key: Option<&str>, provider: Option<&str>) -> Result<Config> {
+    println!("{}", style(BANNER).cyan().bold());
+    println!(
+        "  {}",
+        style("Quick Setup — generating config with sensible defaults...")
+            .white()
+            .bold()
+    );
+    println!();
+
+    let home = directories::UserDirs::new()
+        .map(|u| u.home_dir().to_path_buf())
+        .context("Could not find home directory")?;
+    let zeroclaw_dir = home.join(".zeroclaw");
+    let workspace_dir = zeroclaw_dir.join("workspace");
+    let config_path = zeroclaw_dir.join("config.toml");
+
+    fs::create_dir_all(&workspace_dir).context("Failed to create workspace directory")?;
+
+    let provider_name = provider.unwrap_or("openrouter").to_string();
+    let model = default_model_for_provider(&provider_name);
+
+    let config = Config {
+        workspace_dir: workspace_dir.clone(),
+        config_path: config_path.clone(),
+        api_key: api_key.map(String::from),
+        default_provider: Some(provider_name.clone()),
+        default_model: Some(model.clone()),
+        default_temperature: 0.7,
+        observability: ObservabilityConfig::default(),
+        autonomy: AutonomyConfig {
+            level: AutonomyLevel::Full,
+            workspace_only: false,
+            ..AutonomyConfig::default()
+        },
+        runtime: RuntimeConfig::default(),
+        heartbeat: HeartbeatConfig::default(),
+        channels_config: ChannelsConfig::default(),
+        memory: MemoryConfig::default(),
+        tunnel: crate::config::TunnelConfig::default(),
+        gateway: crate::config::GatewayConfig::default(),
+        composio: ComposioConfig::default(),
+        secrets: SecretsConfig::default(),
+    };
+
+    config.save()?;
+
+    // Scaffold minimal workspace files
+    let default_ctx = ProjectContext {
+        user_name: std::env::var("USER").unwrap_or_else(|_| "User".into()),
+        timezone: "UTC".into(),
+        agent_name: "ZeroClaw".into(),
+        communication_style: "Direct and concise".into(),
+    };
+    scaffold_workspace(&workspace_dir, &default_ctx)?;
+
+    println!(
+        "  {} Workspace:  {}",
+        style("✓").green().bold(),
+        style(workspace_dir.display()).green()
+    );
+    println!(
+        "  {} Provider:   {}",
+        style("✓").green().bold(),
+        style(&provider_name).green()
+    );
+    println!(
+        "  {} Model:      {}",
+        style("✓").green().bold(),
+        style(&model).green()
+    );
+    println!(
+        "  {} API Key:    {}",
+        style("✓").green().bold(),
+        if api_key.is_some() {
+            style("set").green()
+        } else {
+            style("not set (use --api-key or edit config.toml)").yellow()
+        }
+    );
+    println!(
+        "  {} Security:   {}",
+        style("✓").green().bold(),
+        style("Full Autonomy").green()
+    );
+    println!(
+        "  {} Memory:     {}",
+        style("✓").green().bold(),
+        style("sqlite (auto-save)").green()
+    );
+    println!(
+        "  {} Secrets:    {}",
+        style("✓").green().bold(),
+        style("encrypted").green()
+    );
+    println!();
+    println!(
+        "  {} {}",
+        style("Config saved:").white().bold(),
+        style(config_path.display()).green()
+    );
+    println!();
+    println!("  Next steps:");
+    if api_key.is_none() {
+        println!("    1. Set your API key:  export OPENROUTER_API_KEY=\"sk-...\"");
+        println!("    2. Or edit:           ~/.zeroclaw/config.toml");
+        println!("    3. Run:               zeroclaw agent -m \"Hello!\"");
+    } else {
+        println!("    Run:  zeroclaw agent -m \"Hello!\"");
+    }
+    println!();
+
+    Ok(config)
+}
+
+/// Pick a sensible default model for the given provider.
+fn default_model_for_provider(provider: &str) -> String {
+    match provider {
+        "anthropic" => "claude-sonnet-4-20250514".into(),
+        "openai" => "gpt-4o".into(),
+        "ollama" => "llama3.2".into(),
+        "groq" => "llama-3.3-70b-versatile".into(),
+        "deepseek" => "deepseek-chat".into(),
+        _ => "anthropic/claude-sonnet-4-20250514".into(),
+    }
+}
+
 // ── Step helpers ─────────────────────────────────────────────────
 
 fn print_step(current: u8, total: u8, title: &str) {

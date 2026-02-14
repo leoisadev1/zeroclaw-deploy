@@ -46,7 +46,19 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 enum Commands {
     /// Initialize your workspace and configuration
-    Onboard,
+    Onboard {
+        /// Skip interactive prompts — generate config with sensible defaults
+        #[arg(long)]
+        quick: bool,
+
+        /// API key (used with --quick)
+        #[arg(long)]
+        api_key: Option<String>,
+
+        /// Provider name (used with --quick, default: openrouter)
+        #[arg(long)]
+        provider: Option<String>,
+    },
 
     /// Start the AI agent loop
     Agent {
@@ -210,9 +222,18 @@ async fn main() -> Result<()> {
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
-    // Onboard runs the interactive wizard — no existing config needed
-    if matches!(cli.command, Commands::Onboard) {
-        let config = onboard::run_wizard()?;
+    // Onboard runs the wizard or quick setup — no existing config needed
+    if let Commands::Onboard {
+        quick,
+        api_key,
+        provider,
+    } = &cli.command
+    {
+        let config = if *quick {
+            onboard::run_quick_setup(api_key.as_deref(), provider.as_deref())?
+        } else {
+            onboard::run_wizard()?
+        };
         // Auto-start channels if user said yes during wizard
         if std::env::var("ZEROCLAW_AUTOSTART_CHANNELS").as_deref() == Ok("1") {
             channels::start_channels(config).await?;
@@ -224,7 +245,7 @@ async fn main() -> Result<()> {
     let config = Config::load_or_init()?;
 
     match cli.command {
-        Commands::Onboard => unreachable!(),
+        Commands::Onboard { .. } => unreachable!(),
 
         Commands::Agent {
             message,
