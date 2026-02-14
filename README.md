@@ -18,6 +18,20 @@ The fastest, smallest, fully autonomous AI assistant — deploy anywhere, swap a
 ~3.4MB binary · <10ms startup · 1,017 tests · 22+ providers · 8 traits · Pluggable everything
 ```
 
+## Benchmark Snapshot (ZeroClaw vs OpenClaw)
+
+Local machine quick benchmark (macOS arm64, Feb 2026), same host, 3 runs each.
+
+| Metric | ZeroClaw (Rust release binary) | OpenClaw (Node + built `dist`) |
+|---|---:|---:|
+| Build output size | `target/release/zeroclaw`: **3.4 MB** | `dist/`: **28 MB** |
+| `--help` startup (cold/warm) | **0.38s / ~0.00s** | **3.31s / ~1.11s** |
+| `status` command runtime (best of 3) | **~0.00s** | **5.98s** |
+| `--help` max RSS observed | **~7.3 MB** | **~394 MB** |
+| `status` max RSS observed | **~7.8 MB** | **~1.52 GB** |
+
+> Notes: measured with `/usr/bin/time -l`; first run includes cold-start effects. OpenClaw results include `pnpm install` + `pnpm build` before execution.
+
 ## Quick Start
 
 ```bash
