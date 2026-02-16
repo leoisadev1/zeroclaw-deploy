@@ -29,6 +29,43 @@ use anyhow::Result;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+fn clean_llm_response(raw: &str) -> String {
+    let mut result = raw.to_string();
+
+    while let Some(start) = result.find("<think>") {
+        if let Some(end) = result[start..].find("</think>") {
+            result = format!(
+                "{}{}",
+                &result[..start],
+                &result[start + end + "</think>".len()..]
+            );
+        } else {
+            result = result[..start].to_string();
+            break;
+        }
+    }
+
+    while let Some(start) = result.find("TOOL_CALL") {
+        if let Some(end) = result[start..].find("/TOOL_CALL") {
+            result = format!(
+                "{}{}",
+                &result[..start],
+                &result[start + end + "/TOOL_CALL".len()..]
+            );
+        } else {
+            result = result[..start].to_string();
+            break;
+        }
+    }
+
+    let cleaned = result.trim().to_string();
+    if cleaned.is_empty() {
+        "(No response)".to_string()
+    } else {
+        cleaned
+    }
+}
+
 /// Maximum characters per injected workspace file (matches `OpenClaw` default).
 const BOOTSTRAP_MAX_CHARS: usize = 20_000;
 
@@ -704,12 +741,12 @@ pub async fn start_channels(config: Config) -> Result<()> {
 
         match llm_result {
             Ok(Ok(response)) => {
+                let response = clean_llm_response(&response);
                 println!(
                     "  🤖 Reply ({}ms): {}",
                     started_at.elapsed().as_millis(),
                     truncate_with_ellipsis(&response, 80)
                 );
-                // Find the channel that sent this message and reply
                 for ch in &channels {
                     if ch.name() == msg.channel {
                         if let Err(e) = ch.send(&response, &msg.sender).await {
