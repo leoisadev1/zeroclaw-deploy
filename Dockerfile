@@ -48,10 +48,6 @@ allow_public_bind = true
 [browser]
 enabled = true
 allowed_domains = ["*"]
-
-[channels_config.telegram]
-bot_token = "7652109185:AAEdM-qbi72WAcL-Bwhsbw_-d0ZesG0yfz8"
-allowed_users = ["*"]
 EOF
 
 RUN chown -R 65534:65534 /zeroclaw-data
@@ -67,9 +63,10 @@ ENV HOME=/zeroclaw-data
 ENV PROVIDER="openrouter"
 ENV ZEROCLAW_MODEL="anthropic/claude-sonnet-4-20250514"
 ENV ZEROCLAW_GATEWAY_PORT=3000
+ENV TELEGRAM_BOT_TOKEN="7652109185:AAEdM-qbi72WAcL-Bwhsbw_-d0ZesG0yfz8"
 
 WORKDIR /zeroclaw-data
 USER 65534:65534
 EXPOSE 3000
 ENTRYPOINT ["zeroclaw"]
-CMD ["daemon", "--port", "3000", "--host", "[::]"]
+CMD ["gateway", "--port", "3000", "--host", "[::]"]
